@@ -827,3 +827,82 @@ Hardware-specific GPU tests run on controlled compatible machines and cover the 
 ### Not decided
 
 Exact monorepo directory layout, branch/review policy, CMake/Ninja versions, Cargo toolchain policy, Python worker distribution format, GitHub Actions runner strategy, artifact retention, release versioning, package names and dependencies, Windows installer technology, Linux package promotion mechanics, signing-key custody/rotation, update/rollback implementation and support policy.
+
+
+## ADR-023 — Final cross-cutting product, privacy and deployment decisions
+
+**Status:** Approved architectural direction  
+**Date:** 2026-11-22
+
+### Identity and deployment
+
+- Personal desktop authentication uses the operating-system user identity by default, with optional additional authentication for sensitive operations.
+- Shared-server deployments initially use built-in accounts with passkey support. External identity-provider integration is deferred to a later release while preserving an extensible authentication boundary.
+- Initial shared-server deployment support targets Linux servers. Windows server support is not part of the initial target.
+
+### Data protection, encryption and recovery
+
+- Private local data receives application-level encryption by default, alongside OS account protections and any available full-disk encryption. The implementation must remain configurable.
+- A user-controlled master password is the selected primary key-unlock approach.
+- A separately generated recovery key provides the initial lost-key recovery path. Recovery procedures must explain the consequences of losing both the master password and recovery key.
+- Retention is configurable by data category, with sensible defaults and distinct treatment for conversations, task data, logs, caches and derived indexes.
+- Users can define sensitivity levels and policies for conversations, projects, folders and workspaces. Policies may impose stricter storage, cloud-routing, worker-access and retention constraints.
+
+### Cloud and synchronization
+
+- Cloud inference behaviour is configurable, supporting explicit-only use, policy-governed automatic fallback and confirmation-before-use modes.
+- Provider connectivity supports OpenAI-compatible APIs, dedicated provider adapters, custom endpoints and self-hosted inference servers.
+- Synchronization conflict handling automatically merges changes only where safe and reliable; meaningful conflicts are presented for user resolution.
+- The project will support self-hosted synchronization. A project-operated managed synchronization service is not currently planned.
+
+### Models, specialists and autonomy
+
+- Model routing is automatic by default, with user overrides and advanced configuration.
+- Model management supports both assistant-managed downloads/verification/lifecycle and compatible external runtimes.
+- The specialist ecosystem includes built-in, user-created and community-provided specialists.
+- Autonomy is configurable by agent, tool and workspace. The initial default remains risk-based: low-risk permitted actions may proceed automatically; sensitive actions require approval.
+
+### Hardware and resource management
+
+- NVIDIA receives first priority for initial inference compatibility validation, reflecting the initial development target, while AMD and Intel support remain architectural goals requiring independent validation.
+- Resource management combines automatic adaptation with advanced manual CPU, RAM, GPU and VRAM limits and workload profiles.
+- Gaming Mode supports both configurable automatic game detection and manual activation/override.
+
+### Plugins and integrations
+
+- Plugin trust levels include verified, community and local extensions. Installation never grants blanket access; all plugins remain subject to declared capabilities, review, isolation and the central permission broker.
+- Support an official plugin registry and independent third-party registries.
+- Maintain a curated official integration catalogue alongside community integrations.
+
+### Desktop interaction
+
+- The desktop companion supports both an optional floating companion presentation and a minimal floating control-panel presentation.
+- Voice architecture supports speech recognition and spoken responses as well as real-time conversational voice, with selectable modes and visible privacy controls.
+- Application/window metadata awareness and screen-content awareness remain separately configurable and permissioned.
+
+### Linux distribution identity and lifecycle
+
+- Initially build and present the OS as a distinct distribution based on CachyOS infrastructure, with the long-term goal of establishing a fully independent distribution identity, name and ecosystem.
+- Substantially redesign KDE Plasma while retaining it as the initial desktop foundation.
+- The installer provides beginner and advanced modes.
+- Offer Btrfs and ext4, recommending Btrfs with snapshot-based recovery support.
+- Use conventional curated rolling package updates rather than image-based atomic updates. Btrfs snapshots and documented package/system recovery remain important safeguards; this choice does not remove the existing testing/stable promotion process.
+
+### Telemetry, security reporting and audit
+
+- The project collects no telemetry, including anonymous opt-in telemetry, as the product direction.
+- Provide both private vulnerability reporting/coordinated disclosure and a public issue tracker, with clear guidance about which channel to use.
+- Audit detail and retention are configurable, with data minimization and access controls.
+
+### Licensing and bundled software
+
+- Do not select the core licence until a project-wide licensing evaluation has considered distribution, dependencies, contributions and compatibility.
+- The plugin ecosystem accepts compatible open-source licences rather than requiring every extension to use the core's eventual licence.
+- Distribution defaults favour open-source software while allowing clearly labelled optional proprietary applications and drivers.
+
+### Constraints and deferred specifications
+
+These decisions establish product direction, not final cryptographic or implementation specifications. Still required are threat modelling, encryption/key derivation and recovery design, database isolation, detailed retention/deletion guarantees, cloud data disclosure controls, sync protocol and self-hosted deployment design, model/runtime compatibility testing, plugin registry governance, OS installer/update/recovery engineering, vulnerability response procedures and a complete licence/dependency audit.
+
+The choice of a master password plus recovery key must be reconciled with unattended desktop startup and secure key caching. No plaintext key material may be exposed to ordinary workers or plugins. A recovery key must not become a hidden bypass of user/workspace authorization.
+
