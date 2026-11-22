@@ -153,6 +153,78 @@
 
 **Fail / escalation:** If peer identity cannot be reliably bound to a session, select a stronger OS-supported transport/authentication arrangement before Phase 1.
 
+### SP-03 execution report — Linux prototype (2026-11-22)
+
+**Result:** All executed Linux prototype test groups passed. SP-03 remains **in progress** overall because this was a disposable prototype, production security review and Windows named-pipe validation remain outstanding.
+
+**Environment**
+- OS: CachyOS, kernel 7.3.5-2-cachyos, x86_64.
+- Rust/Cargo: 1.100.0.
+- Tokio: 1.54.1; source was cached. The prototype disabled Tokio default features and proc macros to permit an offline build.
+- util-linux `setpriv`: 2.42.4.
+- A `nobody` account exists (UID/GID 65534).
+- The normal user shell could not switch UID with `setpriv` (`setresuid failed: Operation not permitted`). Cross-UID tests were therefore run with the disposable test server elevated; the connecting client ran as UID 65534.
+- All prototype code remained in a temporary directory under `/tmp/assistantv2-sp03-ARbhF9`; no production code was added.
+
+**Executed test groups and results**
+
+1. **Socket access and peer identity**
+   - Per-user private socket denied a client running under a different UID.
+   - On a deliberately accessible test socket, Linux `SO_PEERCRED` reported connecting UID 65534.
+   - Server compared peer UID with its expected UID and rejected the different UID.
+   - Result: all three reported checks passed.
+
+2. **Socket lifecycle**
+   - A second listener could not replace an active socket.
+   - Cleanup refused to remove an active socket.
+   - After the listener exited, the stale socket was detected and removed.
+   - A new listener successfully rebound the path.
+   - Cleanup rejected a regular file at the socket path and preserved its contents.
+   - Result: all five checks passed.
+
+3. **Session mechanics**
+   - Same-UID client completed a handshake and received a random 256-bit token generated from `/dev/urandom`.
+   - Session allowed a `read` operation and denied an out-of-scope `write`.
+   - Explicit revocation immediately denied a subsequent request.
+   - An expired session was denied.
+   - Result: all four checks passed.
+
+4. **Protocol robustness**
+   - Valid request received the expected response.
+   - Malformed request received an error response.
+   - Oversized request exceeding the 1 KiB prototype limit caused connection closure; test accepted EOF or Linux `ConnectionReset`.
+   - Server remained available after abrupt client disconnect.
+   - Sixteen concurrent clients received valid responses.
+   - Server restarted and accepted a new connection.
+   - Result: all six checks passed.
+
+**Acceptance status — Linux prototype evidence**
+- [x] Restrictive per-user socket access demonstrated.
+- [x] Linux peer credentials retrieved and a different UID rejected.
+- [x] Active-socket replacement/removal protections demonstrated.
+- [x] Stale endpoint cleanup and subsequent rebind demonstrated.
+- [x] Non-socket path preserved by cleanup helper.
+- [x] Short-lived session mechanics, scope checks, revocation and expiry demonstrated.
+- [x] Malformed and oversized request handling demonstrated.
+- [x] Concurrent client and abrupt-disconnect handling demonstrated.
+- [x] Restart/reconnection demonstrated.
+- [ ] Production-grade client enrollment/authentication bound to a client identity, beyond OS UID.
+- [ ] Production protocol framing, comprehensive parser fuzzing, rate limits and resource-exhaustion review.
+- [ ] Race-resistant socket-directory ownership and startup coordination reviewed and implemented.
+- [ ] Integration with the central permission broker and trusted user/workspace authorization context.
+- [ ] Independent Windows named-pipe ACL and client-identity validation.
+
+**Limitations and interpretation**
+- These were separate disposable demonstrations, not one integrated IPC implementation. In particular, the simplified protocol robustness harness did not combine peer-credential checks, session authentication and message-size handling into a single server.
+- The session registry was in-memory. The handshake issued a session to any process with the same UID that could connect; it did not establish a distinct enrolled desktop-client identity. A same-UID plugin or worker must not become trusted merely because it shares the OS account.
+- The session's `read` scope was a prototype allowlist, not the central permission broker. Production authorization must also evaluate user, workspace, resource, component, action and policy conditions on every operation.
+- The stale-socket helper checked socket type, owner, device and inode and rechecked before removal, but a metadata-check-then-unlink sequence alone is not a complete defence against path races. Production must anchor operations in a private, trusted runtime directory and coordinate concurrent startup.
+- The cross-UID run required elevation because the user's ordinary process lacked permission to switch UID. The successful test demonstrates Linux behavior in the controlled harness, not that the normal development account can impersonate arbitrary UIDs.
+- The protocol test used a 1 KiB limit and a simple newline-delimited test command. This is not a final API framing or message-size decision.
+- No network listener was created by these local prototypes; a full application network-exposure audit remains future work.
+
+**Decision:** Retain Unix-domain sockets with restrictive per-user runtime-directory permissions and `SO_PEERCRED` as the Linux local transport direction, consistent with ADR-007 and ADR-030. Treat OS peer identity as an input to client authentication, not as application authorization. Do not mark SP-03 fully complete until the integrated implementation, broker enforcement, race-resistant lifecycle, and Windows named-pipe validation pass.
+
 ### SP-04 — Supervised worker protocol and lifecycle
 
 **Question:** Can the core supervise Python workers over a bounded, versioned JSON protocol?
