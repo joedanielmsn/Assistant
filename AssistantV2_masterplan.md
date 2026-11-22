@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction and data ownership boundaries approved; implementation technologies remain unselected.
+**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership and central permission-broker policy approved; implementation technologies remain unselected.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
@@ -910,7 +910,7 @@ When this document is uploaded into a new conversation:
 
 **Existing repository:** Reference only, not the foundation.
 
-**Next step:** Continue Stage 1A architecture research, beginning with the central permission broker and authorization lifecycle. Do not start coding yet.
+**Next step:** Continue Stage 1A architecture research with core/process boundaries and lifecycle. Do not start coding yet.
 
 ---
 
@@ -1032,6 +1032,40 @@ The following remain under research and must not be treated as approved implemen
 - IPC transport and remote-client protocol.
 - Concrete resource scheduler and fairness algorithm.
 - Exact service/process topology and platform-specific implementation.
+
+# 23. APPROVED ARCHITECTURE: CENTRAL PERMISSION BROKER AND AUTHORIZATION
+
+Approved on 22 November 2026. This records policy and security requirements, not a selected policy-engine or implementation technology.
+
+## 23.1 Authorization and permission policy
+
+All privileged actions initiated by agents, plugins, integrations, tools and automations must pass through one central permission broker. No component may bypass the broker, grant itself permissions or self-assert an authorization identity.
+
+The approved policy combines:
+
+- **Hybrid RBAC + ABAC:** roles establish baseline access; contextual attributes and policy conditions determine whether a specific action is authorized.
+- **Risk-based approval:** low-risk actions may run automatically when the applicable policy permits them; sensitive, consequential or destructive actions require confirmation.
+- **User-wide permission scope:** a grant belongs to the individual user who issued it and may apply across that user's authorized contexts. It is not installation-wide and never transfers to another user.
+- **Configurable lifetime:** grants may be permanent, session-scoped, task-scoped or time-limited, with expiry and revocation.
+
+## 23.2 Mandatory security boundaries
+
+- Every privileged operation is evaluated using trusted identity and context: requesting component, user, workspace where applicable, target resource, action, risk and applicable policy conditions.
+- User-wide grants do not override data ownership, workspace membership, resource-level restrictions or other security boundaries.
+- A user's grant never authorizes access to another user's private data or grants privileges to another user.
+- More restrictive applicable resource, workspace, application or policy restrictions take precedence over a broader user-wide grant.
+- Deny access by default when identity, scope or authorization is unclear.
+- Background and delayed tasks retain their initiating user's identity, scope and authorization context; revalidate permissions when appropriate before execution.
+- Permission records must be understandable, revocable and subject to expiry.
+- Consequential actions receive an appropriate preview before execution.
+- Provide audit history, individual action/task cancellation and an emergency stop.
+- Restrict access to audit records and minimize unnecessary sensitive content in them.
+
+Risk-based autonomy remains configurable. Users may choose stricter ask-before-every-action behaviour.
+
+## 23.3 Still open
+
+The policy engine, permission storage format, authentication/session technology, risk-classification implementation, approval UI, audit storage and concrete enforcement implementation remain undecided.
 
 
 **END OF MASTER PLAN**
