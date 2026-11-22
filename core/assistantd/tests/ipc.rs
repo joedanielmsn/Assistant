@@ -186,7 +186,7 @@ fn daemon_ipc_security_and_lifecycle() {
         .set_read_timeout(Some(Duration::from_secs(2)))
         .unwrap();
 
-    oversized.write_all(&vec![b'x'; 4097]).unwrap();
+    oversized.write_all(&vec![b'x'; 16 * 1024 + 1]).unwrap();
 
     let mut response = Vec::new();
     oversized.read_to_end(&mut response).unwrap();

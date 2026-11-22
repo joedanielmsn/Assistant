@@ -1,23 +1,44 @@
 # Local Assistant 2.0
 
-A local-first AI assistant platform, universal desktop experience, and eventually an AI-first CachyOS-derived operating system.
+A local-first assistant platform built around a trusted Rust core, supervised Python AI workers, and a Qt 6/QML desktop client.
 
-## Repository organization
+## First working prototype
 
-- [`plan/`](./plan/README.md) — master plan, approved architecture decisions, roadmap, detailed spike definitions, traceability and engineering/security policies.
-- [`phase-0/`](./phase-0/README.md) — consolidated Phase 0 evidence, decisions, deferred risks and transition review.
-- [`phase-1/`](./phase-1/PHASE_1_SECURE_CORE_SPEC.md) — secure local core implementation specification.
-- Repository root — platform implementation, Rust workspace, desktop client, workers, contracts, tests and build configuration as they are introduced.
-- Separate distribution repository (future) — CachyOS-derived operating-system composition and release tooling, planned for the OS integration phase.
+The desktop chat UI connects to the per-user Rust core over its private Unix socket. The core derives the peer UID, authorizes `agent.chat` through its central permission broker, and supervises a short-lived Python worker for each request. The worker calls the local Ollama HTTP API and returns a text response.
 
-## Current status
+The first agent is conversational only. It does not execute shell commands, modify files, browse the web, or invoke plugins. Model output is untrusted text, not permission to perform actions.
 
-Architecture discovery is sufficiently complete to begin the first secure local core prototype. Phase 0 evidence and remaining limitations are documented; this does not mean all original cross-platform or production acceptance criteria have passed.
+## Run on CachyOS
 
-The first prototype is a per-user CachyOS Linux core with a private Unix socket, OS-derived peer identity, deny-by-default operation broker and safe read-only health/status operations. Model execution, untrusted workers, plugins, privileged OS actions and the desktop UI are intentionally out of scope until their security boundaries are implemented.
+Requirements: x86-64-v3-capable CachyOS/Linux, Rust toolchain, CMake, Ninja, Qt 6 Quick/QML/Quick Controls, Python 3, curl, and a running local Ollama server.
 
-## Development workflow
+```bash
+./run.sh
+```
 
-The project owner develops directly on `main` using focused commits. Keep `main` buildable, run relevant checks before committing, and never rewrite shared history. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+Useful commands: `./run.sh build`, `./run.sh status`, `./run.sh stop`, and `./run.sh clean`.
 
-Start with the [project plan](./plan/README.md), [Phase 0 record](./phase-0/README.md) and [Phase 1 secure-core specification](./phase-1/PHASE_1_SECURE_CORE_SPEC.md) before changing architecture, security boundaries, data ownership or implementation contracts.
+Default model: `qwen3.5:2b-q4_K_M`. Override with `ASSISTANT_MODEL`. Default Ollama endpoint: `http://127.0.0.1:11434`; override with `OLLAMA_HOST`.
+
+The launcher does not take over Ollama service management. Start your existing Ollama server separately if it is not already running.
+
+## Architecture
+
+- `core/assistantd/`: Rust/Tokio authoritative core, local IPC and permission broker.
+- `workers/agent/`: Python conversational worker and Ollama adapter.
+- `desktop/`: Qt 6 + QML desktop client.
+- `run.sh`: one-command CachyOS development launcher.
+- `docs/first-working-prototype.md`: setup, scope and limitations.
+- `plan/` and `phase-0/`: authoritative architecture and engineering records.
+
+The approved long-term inference direction remains a replaceable backend architecture with llama.cpp as the initial target. Ollama is used as a development adapter against the already-available local runtime.
+
+## Project constraints
+
+- Personal per-OS-user deployment first; shared multi-user server architecture remains a future profile.
+- Private-by-default data and explicit user/workspace authorization context.
+- All privileged operations pass through the central permission broker.
+- Models and workers are untrusted requesters, never authorities.
+- No telemetry, cloud inference or remote listener is enabled by this prototype.
+- The old `~/local-assistant` project is reference-only; this repository is a fresh implementation.
+- Licensing remains deferred until release planning.

@@ -5,3 +5,9 @@
 !.env.example
 *.sock
 *.log
+
+/build/
+/.run/
+.venv/
+__pycache__/
+*.pyc

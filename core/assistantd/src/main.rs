@@ -8,6 +8,7 @@ use std::{
         net::UnixStream as StdUnixStream,
     },
     path::{Path, PathBuf},
+    process::Stdio,
     sync::Arc,
     time::{Duration, Instant},
 };
@@ -18,15 +19,20 @@ use serde_json::{Value, json};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     net::{UnixListener, UnixStream},
+    process::Command as TokioCommand,
     sync::Semaphore,
     task::JoinSet,
     time::timeout,
 };
 
 const PROTOCOL_VERSION: u16 = 1;
-const MAX_FRAME_BYTES: usize = 4 * 1024;
+const MAX_FRAME_BYTES: usize = 16 * 1024;
 const MAX_CONNECTIONS: usize = 32;
-const CONNECTION_DEADLINE: Duration = Duration::from_secs(5);
+const FRAME_DEADLINE: Duration = Duration::from_secs(5);
+const CHAT_DEADLINE: Duration = Duration::from_secs(180);
+const CONNECTION_DEADLINE: Duration = Duration::from_secs(185);
+const MAX_CHAT_MESSAGES: usize = 8;
+const MAX_CHAT_CHARS: usize = 12_000;
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +40,8 @@ struct Request {
     version: u16,
     id: String,
     operation: String,
+    #[serde(default)]
+    payload: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -82,6 +90,7 @@ impl Response {
 enum Operation {
     HealthRead,
     StatusRead,
+    AgentChat,
 }
 
 impl Operation {
@@ -89,6 +98,7 @@ impl Operation {
         match value {
             "core.health.read" => Some(Self::HealthRead),
             "core.status.read" => Some(Self::StatusRead),
+            "agent.chat" => Some(Self::AgentChat),
             _ => None,
         }
     }
@@ -97,6 +107,7 @@ impl Operation {
         match self {
             Self::HealthRead => "core.health.read",
             Self::StatusRead => "core.status.read",
+            Self::AgentChat => "agent.chat",
         }
     }
 }
@@ -118,13 +129,14 @@ struct PermissionBroker {
 
 impl PermissionBroker {
     fn authorize(&self, request: &AuthorizationRequest) -> bool {
-        if request.principal.uid != self.owner_uid || request.resource != "core" {
+        if request.principal.uid != self.owner_uid {
             return false;
         }
 
         matches!(
-            request.operation,
-            Some(Operation::HealthRead | Operation::StatusRead)
+            (request.operation, request.resource),
+            (Some(Operation::HealthRead | Operation::StatusRead), "core")
+                | (Some(Operation::AgentChat), "agent")
         )
     }
 }
@@ -325,6 +337,118 @@ fn audit(uid: u32, request_id: &str, operation: &str, decision: &str) {
     );
 }
 
+
+async fn run_agent_chat(payload: Option<Value>) -> Result<Value, (String, String)> {
+    let payload = payload.ok_or_else(|| (
+        "invalid_request".to_owned(),
+        "Chat requests must include a messages array".to_owned(),
+    ))?;
+    let messages = payload.get("messages").and_then(Value::as_array).ok_or_else(|| (
+        "invalid_request".to_owned(),
+        "Chat requests must include a messages array".to_owned(),
+    ))?;
+
+    if messages.is_empty() || messages.len() > MAX_CHAT_MESSAGES {
+        return Err((
+            "invalid_request".to_owned(),
+            format!("Chat history must contain 1 to {MAX_CHAT_MESSAGES} messages"),
+        ));
+    }
+
+    let mut total_chars = 0_usize;
+    for message in messages {
+        let role = message.get("role").and_then(Value::as_str).unwrap_or("");
+        let content = message.get("content").and_then(Value::as_str).unwrap_or("");
+        if !matches!(role, "user" | "assistant") || content.trim().is_empty() {
+            return Err((
+                "invalid_request".to_owned(),
+                "Chat messages must have a user/assistant role and non-empty text".to_owned(),
+            ));
+        }
+        total_chars += content.chars().count();
+        if total_chars > MAX_CHAT_CHARS {
+            return Err((
+                "invalid_request".to_owned(),
+                "Chat history exceeds the prototype size limit".to_owned(),
+            ));
+        }
+    }
+
+    if messages.last().and_then(|m| m.get("role")).and_then(Value::as_str) != Some("user") {
+        return Err((
+            "invalid_request".to_owned(),
+            "The latest chat message must be from the user".to_owned(),
+        ));
+    }
+
+    let worker_path = env::var_os("ASSISTANT_WORKER_PATH").map(PathBuf::from).ok_or_else(|| (
+        "worker_unavailable".to_owned(),
+        "The Python agent worker path is not configured; launch with run.sh".to_owned(),
+    ))?;
+    let python = env::var("ASSISTANT_PYTHON").unwrap_or_else(|_| "python3".to_owned());
+    let input = serde_json::to_vec(&json!({ "messages": messages })).map_err(|_| (
+        "internal_error".to_owned(),
+        "Could not encode the chat request".to_owned(),
+    ))?;
+
+    let mut child = TokioCommand::new(python)
+        .arg(worker_path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|_| (
+            "worker_unavailable".to_owned(),
+            "Could not start the local Python agent worker".to_owned(),
+        ))?;
+
+    let mut stdin = child.stdin.take().ok_or_else(|| (
+        "worker_unavailable".to_owned(),
+        "The local agent worker input pipe is unavailable".to_owned(),
+    ))?;
+    stdin.write_all(&input).await.map_err(|_| (
+        "worker_failed".to_owned(),
+        "Could not send the request to the local agent worker".to_owned(),
+    ))?;
+    drop(stdin);
+
+    let output = match timeout(CHAT_DEADLINE, child.wait_with_output()).await {
+        Ok(Ok(output)) => output,
+        Ok(Err(_)) => return Err((
+            "worker_failed".to_owned(),
+            "The local agent worker did not complete successfully".to_owned(),
+        )),
+        Err(_) => return Err((
+            "model_timeout".to_owned(),
+            "The local model did not respond before the 180-second deadline".to_owned(),
+        )),
+    };
+
+    if !output.status.success() {
+        let diagnostic: String = String::from_utf8_lossy(&output.stderr)
+            .chars().take(240).collect();
+        eprintln!("assistantd: agent worker failed: {diagnostic}");
+        return Err((
+            "model_unavailable".to_owned(),
+            "The local model request failed; check that Ollama is running and the model is available"
+                .to_owned(),
+        ));
+    }
+
+    let result: Value = serde_json::from_slice(&output.stdout).map_err(|_| (
+        "worker_protocol_error".to_owned(),
+        "The local agent worker returned an invalid response".to_owned(),
+    ))?;
+    let message = result.get("message").and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty()).ok_or_else(|| (
+            "worker_protocol_error".to_owned(),
+            "The local agent worker returned an empty response".to_owned(),
+        ))?;
+    let model = result.get("model").and_then(Value::as_str).unwrap_or("local-model");
+    Ok(json!({ "message": message, "model": model }))
+}
+
 async fn handle_connection(mut stream: UnixStream, state: Arc<ServerState>) -> io::Result<()> {
     let credentials = stream.peer_cred()?;
     let principal = Principal {
@@ -336,11 +460,18 @@ async fn handle_connection(mut stream: UnixStream, state: Arc<ServerState>) -> i
         return Ok(());
     }
 
-    let frame = match read_frame(&mut stream).await {
-        Ok(frame) => frame,
-        Err(error) => {
+    let frame = match timeout(FRAME_DEADLINE, read_frame(&mut stream)).await {
+        Ok(Ok(frame)) => frame,
+        Ok(Err(error)) => {
             audit(principal.uid, "unknown", "protocol.frame", "deny");
             return Err(error);
+        }
+        Err(_) => {
+            audit(principal.uid, "unknown", "protocol.frame", "deny");
+            return Err(io_error(
+                io::ErrorKind::TimedOut,
+                "client did not complete a request frame before the deadline",
+            ));
         }
     };
 
@@ -390,7 +521,10 @@ async fn handle_connection(mut stream: UnixStream, state: Arc<ServerState>) -> i
     let authorization = AuthorizationRequest {
         principal,
         operation: Some(operation),
-        resource: "core",
+        resource: match operation {
+            Operation::AgentChat => "agent",
+            Operation::HealthRead | Operation::StatusRead => "core",
+        },
     };
 
     if !state.broker.authorize(&authorization) {
@@ -415,6 +549,15 @@ async fn handle_connection(mut stream: UnixStream, state: Arc<ServerState>) -> i
             "uptime_seconds": state.started_at.elapsed().as_secs(),
             "protocol_version": PROTOCOL_VERSION
         }),
+        Operation::AgentChat => match run_agent_chat(request.payload).await {
+            Ok(result) => result,
+            Err((code, message)) => {
+                return write_response(
+                    &mut stream,
+                    &Response::failure(request.id.clone(), &code, &message),
+                ).await;
+            }
+        },
     };
 
     write_response(&mut stream, &Response::success(request.id, result)).await
@@ -506,6 +649,7 @@ async fn call(operation: Operation) -> Result<(), Box<dyn Error>> {
         version: PROTOCOL_VERSION,
         id: "cli-1".to_owned(),
         operation: operation.as_str().to_owned(),
+        payload: None,
     };
 
     let mut bytes = serde_json::to_vec(&request)?;
