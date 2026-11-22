@@ -372,10 +372,21 @@ async fn handle_connection(
         return write_response(&mut stream, &response).await;
     }
 
-    let operation = Operation::parse(&request.operation);
+    let operation = match Operation::parse(&request.operation) {
+        Some(operation) => operation,
+        None => {
+            audit(principal.uid, &request.id, &request.operation, "deny");
+            let response = Response::failure(
+                request.id,
+                "forbidden",
+                "The operation is not available to this client",
+            );
+            return write_response(&mut stream, &response).await;
+        }
+    };
     let authorization = AuthorizationRequest {
         principal,
-        operation,
+        operation: Some(operation),
         resource: "core",
     };
 
@@ -391,7 +402,7 @@ async fn handle_connection(
 
     audit(principal.uid, &request.id, &request.operation, "allow");
 
-    let result = match operation.expect("authorized operation must be known") {
+    let result = match operation {
         Operation::HealthRead => json!({
             "status": "ok",
             "protocol_version": PROTOCOL_VERSION
