@@ -295,3 +295,33 @@ Remaining consolidation work:
 - Revisit licensing before architecture finalisation and again before public release.
 
 No implementation stack has been approved as a whole, and implementation has not started.
+
+## Phase 8 — Architecture consolidation and technology selection
+
+**Status:** In progress — initial technology architecture approved on 22 November 2026; implementation specifications and validation remain.
+
+### Newly approved
+
+- Rust + Tokio for the authoritative core.
+- Python AI/specialist workers in separate supervised, restartable processes; Python is not a security or authorization authority.
+- Versioned JSON over supervised local IPC as the initial worker protocol; gRPC/Protocol Buffers deferred unless measured requirements justify them.
+- llama.cpp as the initial local LLM backend and ONNX Runtime for suitable specialized inference, behind a common model-manager/backend interface.
+- SQLite for personal desktop persistence; PostgreSQL for shared-server persistence; SQLite FTS5 for initial local full-text search.
+- SQLx as the initial Rust database-access candidate, subject to validation.
+- Wasmtime/WebAssembly as the preferred portable plugin sandbox where capabilities fit; native integrations use separately isolated OS-restricted workers.
+- Bubblewrap plus Linux kernel controls as Linux native-worker sandbox candidates; Windows AppContainer where compatible. Platform parity and actual isolation strength require validation.
+- Internal typed event system and durable database-backed workflow engine initially; external event/workflow infrastructure deferred until justified by measured needs.
+- Versioned HTTP-compatible API and WebSockets remain the client-facing communication direction.
+
+### Remaining Phase 8 work
+
+- Define worker protocol schemas, process supervision, lifecycle, cancellation, deadlines and failure recovery.
+- Validate Python runtime/dependency packaging and Rust/Python compatibility across Linux and Windows.
+- Threat-model and test WebAssembly plugin capabilities, native worker sandbox profiles and privileged helper boundaries.
+- Validate llama.cpp and ONNX Runtime model/provider combinations across supported CPU/GPU hardware, including hybrid graphics and the RTX 3050 4 GB development target.
+- Define database schemas, migrations, encryption/key management, authorization enforcement, backup and deletion behaviour.
+- Specify workflow persistence, transactional outbox, retries, idempotency and event delivery.
+- Evaluate build system, package formats, signing, update/rollback and reproducible release processes.
+- Revisit licensing before architecture finalisation and public release.
+
+The initial technology direction is approved, but detailed implementation specifications, compatibility/security validation and release engineering are not complete. Implementation has not started.
