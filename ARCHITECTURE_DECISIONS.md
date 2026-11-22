@@ -218,3 +218,38 @@ Gaming Mode uses aggressive resource protection to prioritize the game while ret
 ### Not decided
 
 Exact CPU/RAM budgets, model/runtime choice, tool allowlist, game detection mechanism and transition implementation remain subject to hardware testing and implementation research.
+
+
+## ADR-007 — Core/client communication, IPC and remote access
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use one authoritative core as the platform's control and security boundary. Desktop interfaces, CLI clients, browser interfaces, companion surfaces and future clients communicate with the core through a versioned, language-neutral API. Clients do not access private stores, privileged tools or protected resources directly.
+
+| Dimension | Approved direction |
+|---|---|
+| Common client API | Versioned HTTP-compatible API with structured request/response operations |
+| Live events | WebSocket channel for streaming responses, task progress, state changes and notifications |
+| Linux local IPC | Unix domain sockets, with OS peer-identity checks and restrictive socket permissions |
+| Windows local IPC | Named pipes, with explicit access-control configuration and client identity checks |
+| Local trust | Local IPC is not implicitly trusted; establish an authenticated client session and authorize each operation |
+| Remote access | Disabled by default; optional LAN access and secure remote access through a user-configured VPN or tunnel |
+| Shared-server authentication | Built-in accounts with passkey support, plus optional external identity-provider integration |
+| Authorization | Core-side authorization on every operation, enforced through the central permission broker and trusted user/workspace context |
+
+### Mandatory constraints
+
+- The same API contract should serve desktop, headless, browser and future mobile clients.
+- Keep API contracts independent of a particular programming language or transport implementation.
+- Remote access must be explicitly enabled and securely authenticated; do not expose unauthenticated development endpoints.
+- Authentication establishes identity; it does not itself grant resource or action permissions.
+- Worker and plugin identities are constrained by the core and cannot impersonate users or bypass the permission broker.
+- Clients must handle API version negotiation and unsupported capabilities explicitly.
+- Internal worker communication may use a specialised transport later if justified by measured requirements, while preserving trusted identity and authorization context.
+
+### Not decided
+
+Concrete HTTP server/library, WebSocket implementation, API schema format, local socket/pipe path and ACL details, passkey implementation, external identity-provider protocols, session/token format and lifecycle, LAN exposure controls, VPN/tunnel integration, API compatibility policy and worker-specific transport remain subject to implementation research.
