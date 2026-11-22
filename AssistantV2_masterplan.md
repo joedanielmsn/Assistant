@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership and central permission-broker policy approved; implementation technologies remain unselected.
+**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership, central permission-broker policy and modular-core/selective-worker architecture approved; implementation technologies remain unselected.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
@@ -910,7 +910,7 @@ When this document is uploaded into a new conversation:
 
 **Existing repository:** Reference only, not the foundation.
 
-**Next step:** Continue Stage 1A architecture research with core/process boundaries and lifecycle. Do not start coding yet.
+**Next step:** Continue Stage 1A architecture research with core/client communication, IPC and lifecycle contracts. Do not start coding yet.
 
 ---
 
@@ -1069,3 +1069,60 @@ The policy engine, permission storage format, authentication/session technology,
 
 
 **END OF MASTER PLAN**
+
+# 24. APPROVED ARCHITECTURE: MODULAR CORE AND SELECTIVELY ISOLATED WORKERS
+
+Approved on 22 November 2026. This establishes the architectural direction and process-separation criteria, not a final process topology or technology selection.
+
+## 24.1 Overall architecture
+
+Use a **modular core with selectively isolated processes**. Avoid both a single monolithic process for every workload and a broad microservices architecture that adds unnecessary operational and resource overhead.
+
+The main core owns orchestration, authorization, resource policy and shared platform state. Keep components as core modules unless a concrete lifecycle, security, reliability or runtime requirement justifies process separation.
+
+## 24.2 Process-separation criteria
+
+A component should become a separate process when at least one of these applies:
+
+1. It needs an independent lifecycle or resource-management boundary.
+2. It handles untrusted code or sensitive operations requiring stronger isolation.
+3. Its failure must not crash or destabilize the main core.
+4. It requires a specialised runtime, hardware access or dependency environment.
+
+Otherwise, keep it inside the core as a module.
+
+Process separation alone is not a security sandbox. Untrusted workers require actual OS-enforced restrictions and controlled interfaces.
+
+## 24.3 Initial process-boundary direction
+
+The following is a starting baseline; individual boundaries may be refined as workloads and platform constraints are researched.
+
+| Component | Initial direction |
+|---|---|
+| Main orchestrator | Main core |
+| Permission broker | Main core |
+| Resource manager | Main core |
+| Memory and knowledge | Main core initially |
+| Event system | Main core initially |
+| Desktop UI | Separate client process |
+| Inference runtime | Independent process |
+| Specialist agents | On-demand, bounded worker pool |
+| Plugins | Restricted isolated processes |
+| Browser/desktop automation | Isolated workers |
+| Voice processing | On-demand worker |
+
+## 24.4 Operational constraints
+
+- Worker failures must not bring down the main core; workers should be restartable where appropriate.
+- Specialist workers are on-demand and bounded rather than permanently spawned without need.
+- Share inference runtimes where practical and avoid unnecessary duplicate model instances.
+- Worker execution remains subject to the central permission broker and resource manager.
+- The exact process topology and platform-specific lifecycle remain open for further design.
+
+## 24.5 Still open
+
+- Exact process topology and module boundaries.
+- IPC transport and worker communication protocol.
+- Sandbox and OS-enforcement technologies.
+- Service managers and platform-specific lifecycle implementation.
+- Worker restart, health-check and failure-recovery policy.
