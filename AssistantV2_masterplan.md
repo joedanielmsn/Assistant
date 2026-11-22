@@ -1542,3 +1542,16 @@ Approved on 22 November 2026. The central permission broker is the authoritative
 - The broker records authorization decisions and execution outcomes under the applicable audit and data-minimization policies.
 
 The exact helper architecture, operation catalogue, platform-specific implementation, privilege lifecycle, IPC protocol and audit storage remain open for implementation design.
+
+# 37. APPROVED PLATFORM SCOPE: X86-64 ONLY
+
+The initial supported hardware architecture for Local Assistant 2.0 and its associated desktop, server and AI Linux distribution deliverables is **x86-64 (AMD64) only**.
+
+- Official builds, installation media, packaging, testing and support target x86-64 systems.
+- ARM64 and other CPU architectures are outside the initial support commitment.
+- Keep architecture-dependent implementation details behind portable interfaces where practical, without treating future portability as a current support promise.
+- CPU architecture support is separate from GPU and device compatibility; the x86-64 target does not guarantee support for every graphics device or peripheral.
+- The minimum CPU instruction-set baseline, processor generations and GPU/accelerator compatibility matrix remain to be researched.
+
+See ADR-018 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
