@@ -1,9 +1,9 @@
 # Phase 0 — Requirements Traceability Matrix
 
-**Status:** Initial engineering-preparation baseline  
+**Status:** Baseline retained; traceability updates continue alongside Phase 1 implementation  
 **Date:** 2026-11-22  
 **Authority:** Approved ADR-001 through ADR-035 and `IMPLEMENTATION_ROADMAP.md`  
-**Implementation status:** Not started
+**Implementation status:** Phase 1 secure local core prototype started; requirements-to-code mapping is being expanded incrementally
 
 This matrix connects the approved product requirements to architecture decisions, implementation ownership, verification evidence and delivery phases. It is a planning and review artifact; listing a test does not mean that the test or feature already exists.
 
