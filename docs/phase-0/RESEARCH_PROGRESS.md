@@ -6,7 +6,7 @@
 
 ---
 
-> **Current status update — 22 November 2026:** The architecture direction is consolidated through ADR-035. Phase 8 is complete at the architecture-direction level; the project is now in Phase 0 engineering preparation. No production implementation has started. Earlier stage and Phase 8 entries below preserve the research history and should be read as historical snapshots where they conflict with this update. Current execution documents: [Implementation Roadmap](./IMPLEMENTATION_ROADMAP.md), [Phase 0 Traceability](./PHASE_0_TRACEABILITY.md), [Repository Layout](./REPOSITORY_LAYOUT.md), [Technical Spikes](./PHASE_0_TECHNICAL_SPIKES.md), and [Engineering Baseline](./ENGINEERING_BASELINE.md).
+> **Current status update — 22 November 2026:** The architecture direction is consolidated through ADR-035. Phase 8 is complete at the architecture-direction level; the project is now in Phase 0 engineering preparation. No production implementation has started. Earlier stage and Phase 8 entries below preserve the research history and should be read as historical snapshots where they conflict with this update. Current execution documents: [Implementation Roadmap](../../IMPLEMENTATION_ROADMAP.md), [Phase 0 Traceability](./PHASE_0_TRACEABILITY.md), [Repository Layout](../project/REPOSITORY_LAYOUT.md), [Technical Spikes](./PHASE_0_TECHNICAL_SPIKES.md), and [Engineering Baseline](../engineering/ENGINEERING_BASELINE.md).
 
 ## Approved
 
@@ -36,7 +36,7 @@ Key user selections:
 
 Other choices in these areas follow the assistant's recommendations. Concrete libraries, UI frameworks, sandbox technologies and platform adapters remain undecided.
 
-See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
+See [ARCHITECTURE_DECISIONS.md](../../ARCHITECTURE_DECISIONS.md) for the decision records.
 
 ## Stage 1A — Explored / under evaluation
 
@@ -61,7 +61,7 @@ The user approved the recommended directions for both intelligence/orchestration
 - **Intelligence/orchestration:** bounded adaptive central orchestration; sequential execution by default; selective parallelism; structured specialist contracts; deterministic validation and permission enforcement; task checkpoints, safe retries and outcome verification.
 - **Memory/knowledge:** layered working, episodic, semantic and procedural memory plus separate knowledge repositories; review-based persistent memory writes; user-selected project monitoring; provenance and temporal validity; authorization-aware retrieval and propagation of updates/deletion.
 
-See ADR-011 and ADR-012 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Sections 30–31.
+See ADR-011 and ADR-012 in [ARCHITECTURE_DECISIONS.md](../../ARCHITECTURE_DECISIONS.md) and Masterplan Sections 30–31.
 
 ## Recently approved architecture domains — 22 November 2026
 
@@ -71,7 +71,7 @@ The user approved the recommended directions for automation/workflows, the plugi
 - **Plugins/integrations:** open community ecosystem with manifests, publisher/provenance verification, signatures, isolated workers, scoped credentials and mandatory broker enforcement.
 - **Sync/portability:** local-first optional managed or self-hosted sync; end-to-end encryption for private data; controlled workspace key boundaries; separate encrypted backups and portable export/import; safe conflict handling.
 
-See ADR-013 through ADR-015 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Sections 32–34.
+See ADR-013 through ADR-015 in [ARCHITECTURE_DECISIONS.md](../../ARCHITECTURE_DECISIONS.md) and Masterplan Sections 32–34.
 
 ## Deferred / undecided
 
@@ -238,7 +238,7 @@ Deferred implementation details:
 - Kernel variants, installer, filesystem/partitioning defaults and Secure Boot.
 - Hardware profiles, recovery, rollback and release-support policy.
 
-See ADR-016 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Section 35.
+See ADR-016 in [ARCHITECTURE_DECISIONS.md](../../ARCHITECTURE_DECISIONS.md) and Masterplan Section 35.
 
 ## Architecture discovery status
 
@@ -518,7 +518,7 @@ Consistency reconciliation:
 - ADR-030/031/033 set core/API/UI, installer and GRUB defaults; Secure Boot support remains gated on full-chain validation.
 - ADR-034/035 formalize local-only cloud defaults and no telemetry.
 
-A phased implementation plan has been created at [IMPLEMENTATION_ROADMAP.md](./IMPLEMENTATION_ROADMAP.md). The next proposed stage is Phase 0: architecture traceability, CI scaffolding design and focused compatibility/security spikes. **No implementation has started.**
+A phased implementation plan has been created at [IMPLEMENTATION_ROADMAP.md](../../IMPLEMENTATION_ROADMAP.md). The next proposed stage is Phase 0: architecture traceability, CI scaffolding design and focused compatibility/security spikes. **No implementation has started.**
 
 Intentionally deferred product decisions:
 - Distribution name and branding.
