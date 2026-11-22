@@ -94,6 +94,42 @@ Evaluate a hybrid isolation approach based on sensitivity and operational requir
 ### Not decided
 Database/storage technology, tenancy mechanism, encryption/key management, exact retention periods and backup lifecycle.
 
+
+## ADR-004 — Central permission broker and authorization lifecycle
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+All privileged actions initiated by the assistant platform must pass through one central permission broker. Agents, plugins, integrations, tools and automations cannot bypass the broker, grant themselves permissions or self-assert an authorization identity.
+
+| Dimension | Approved decision |
+|---|---|
+| Authorization | Hybrid RBAC + ABAC: roles establish baseline access; contextual attributes and policy conditions evaluate each action |
+| Approval | Risk-based: low-risk actions may run automatically when policy permits; sensitive, consequential or destructive actions require confirmation |
+| Scope | User-wide: grants belong to the individual user who issued them and may apply across that user's authorized contexts; they are not installation-wide and never transfer to another user |
+| Lifetime | Configurable: permanent, session-scoped, task-scoped or time-limited grants, with expiry and revocation |
+
+### Mandatory enforcement rules
+
+- Evaluate every privileged operation using trusted identity and context: requesting component, user, workspace where applicable, target resource, action, risk and applicable policy conditions.
+- User-wide grants do not override data ownership, workspace membership, resource-level restrictions or other security boundaries.
+- A user's grant never authorizes access to another user's private data or grants privileges to another user.
+- More restrictive applicable resource, workspace, application or policy restrictions take precedence over a broader user-wide grant.
+- Deny access by default when identity, scope or authorization is unclear.
+- Background and delayed tasks retain their initiating user's identity, scope and authorization context; revalidate permissions when appropriate before execution.
+- Provide understandable permission records, expiry and revocation.
+- Provide previews for consequential actions, audit history, individual action/task cancellation and an emergency stop.
+- Restrict access to audit records and minimize unnecessary sensitive content.
+
+Risk-based autonomy is configurable. Harmless, reversible actions may run automatically only when the applicable user policy permits them. Users may choose ask-before-every-action behaviour.
+
+### Not decided
+
+The concrete policy engine, permission storage format, authentication/session technology, risk-classification implementation, approval UI, audit storage and enforcement implementation remain open for detailed design and technology research.
+
+---
 ---
 
 ## Decision status rules
