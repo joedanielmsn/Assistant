@@ -1555,3 +1555,15 @@ The initial supported hardware architecture for Local Assistant 2.0 and its asso
 
 See ADR-018 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
 
+
+# 38. APPROVED CPU BASELINE: X86-64-V3
+
+The initial supported x86-64 platform requires **x86-64-v3** CPU instruction-set compatibility.
+
+- x86-64-v3 is the minimum baseline for official builds and supported systems.
+- x86-64-v4 may be used for optional optimized builds or runtime-dispatched code on compatible processors; it is not mandatory.
+- Older x86-64 processors that do not meet the v3 baseline are outside the initial support commitment.
+- Provide compatibility checks and clear diagnostics before installing or running architecture-specific packages where practical.
+- Keep architecture-specific optimizations separated from portable source code so future targets can be evaluated independently.
+
+This is a CPU instruction-set requirement, not a guarantee of support for every GPU, peripheral or laptop configuration. See ADR-019 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
