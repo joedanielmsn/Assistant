@@ -1600,3 +1600,37 @@ The following are current technology candidates for evaluation, not final commit
 | Initial event/workflow engine | Internal typed event system + durable database state |
 
 The overall stack must be validated for cross-platform support, security boundaries, hardware/resource efficiency, maintainability and ecosystem maturity before the remaining candidates are approved.
+
+## 40. Approved initial technology architecture — 22 November 2026
+
+The initial core/worker/runtime technology direction is approved and recorded in ADR-021.
+
+| Layer | Approved direction |
+|---|---|
+| Authoritative core | Rust + Tokio |
+| AI/specialist workers | Separate supervised Python processes |
+| Desktop UI | Qt 6 + QML (ADR-020) |
+| Local LLM inference | llama.cpp |
+| Specialized inference | ONNX Runtime, with per-platform/provider validation |
+| Personal desktop database | SQLite |
+| Shared-server database | PostgreSQL |
+| Initial local full-text search | SQLite FTS5 |
+| Rust database access | SQLx as the initial candidate, subject to validation |
+| Client API | Versioned HTTP-compatible API + WebSockets |
+| Worker IPC | Versioned JSON over supervised local IPC |
+| Portable plugin sandbox | WebAssembly with Wasmtime |
+| Native integration isolation | OS-restricted workers; Bubblewrap/kernel controls on Linux and AppContainer where compatible on Windows |
+| Workflows/events | Internal typed event system and durable database-backed workflow engine |
+
+### Architecture boundaries
+
+- Rust owns authoritative state, orchestration, identity, authorization, permission enforcement and resource policy.
+- Python workers provide specialist capabilities only; they cannot establish identity, authorize actions or bypass the broker.
+- Worker failures must remain isolated from the core.
+- All inference backends sit behind a common internal contract and are managed centrally.
+- Plugin sandboxing and native-worker isolation are separate execution paths; process separation alone is not sufficient.
+- All privileged operations remain subject to the central permission broker.
+
+These are approved technology directions, not completed implementation specifications. Exact versions, schemas, process lifecycle, sandbox profiles, GPU compatibility, database design, encryption, packaging, build/release engineering and licensing still require detailed work and validation.
+
+Licensing remains intentionally deferred for architecture finalisation and public-release review.
