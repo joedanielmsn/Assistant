@@ -1846,3 +1846,24 @@ ADR-035 formalizes the no-telemetry decision:
 - Server audit records are narrowly scoped, configurable and separate from product analytics. They must not expose private content to administrators by default.
 
 See ADR-035 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+## 50. Architecture consolidation status and implementation sequencing — 22 November 2026
+
+The cross-cutting architecture decision set now extends through ADR-035. The architecture direction is sufficiently consolidated to begin Phase 0 engineering preparation when explicitly authorized.
+
+Consistency review notes:
+- The self-hosted-only synchronization decision in ADR-026 supersedes the managed-sync option originally recorded in ADR-015.
+- ADR-032 refines ADR-021's SQLx candidate: rusqlite + SQLCipher + FTS5 for personal desktop storage; SQLx/PostgreSQL for shared-server storage.
+- ADR-028 clarifies the curated rolling-release decision in ADR-016 as conventional signed package updates with recovery mechanisms, not image-based atomic updates.
+- ADR-024 and ADR-025 strengthen the worker, plugin, identity, data-scope and permission-broker boundaries without replacing earlier decisions.
+- ADR-030 provides the initial core lifecycle/API/UI integration direction; ADR-031 and ADR-033 define the installer and bootloader defaults, with Secure Boot still gated on end-to-end validation.
+- ADR-034 and ADR-035 make the local-first cloud and no-telemetry policies explicit.
+
+The phased execution plan is in [IMPLEMENTATION_ROADMAP.md](./IMPLEMENTATION_ROADMAP.md). No implementation has started. Phase 0 is the next proposed stage; it begins with small compatibility/security spikes and engineering preparation, not broad feature coding.
+
+Product decisions intentionally deferred:
+- Final distribution name/branding and independent ecosystem identity.
+- Core project licence, pending full dependency, asset, model and distribution review.
+- External identity-provider integration for shared servers.
+- Additional CPU architectures and unvalidated GPU/runtime combinations.
