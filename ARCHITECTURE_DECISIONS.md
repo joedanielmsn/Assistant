@@ -666,3 +666,91 @@ Qt 6 + QML aligns with the KDE Plasma foundation selected for the AI-first Linux
 ### Not decided
 
 Exact Qt modules, QML architecture, UI state-management approach, build system, packaging, platform-specific tray/overlay implementations and accessibility implementation details remain open for implementation planning.
+
+## ADR-021 — Initial core, worker and runtime technology architecture
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Adopt the following initial technology architecture for Local Assistant 2.0. These selections establish the implementation direction; detailed schemas, versions, APIs, deployment configurations and security policies still require implementation specifications and validation.
+
+| Area | Approved technology/direction |
+|---|---|
+| Authoritative core | Rust |
+| Core asynchronous runtime | Tokio |
+| AI and specialist workers | Python, running as separate supervised processes |
+| Desktop application | Qt 6 + QML (ADR-020) |
+| Local LLM inference | llama.cpp |
+| Specialized inference | ONNX Runtime, selected per model/task and validated execution provider |
+| Personal desktop persistence | SQLite |
+| Shared-server persistence | PostgreSQL |
+| Initial local full-text search | SQLite FTS5 |
+| Rust database access candidate | SQLx, subject to platform/backend validation |
+| Client API | Versioned HTTP-compatible structured API and WebSockets |
+| Internal worker protocol | Versioned JSON messages over supervised local IPC |
+| Portable plugin execution | WebAssembly using Wasmtime as the initial runtime |
+| Native integration workers | Isolated processes with OS-enforced restrictions; Bubblewrap and Linux kernel controls on Linux, AppContainer where compatible on Windows |
+| Workflow execution | Internal durable workflow engine backed by database state |
+| Event delivery | Internal typed event system initially; introduce an external broker only if measured needs justify it |
+
+### Core and worker boundary
+
+- Rust owns authoritative platform state, orchestration, trusted identity, authorization, the permission broker and resource policy.
+- Python provides AI and specialist capabilities but is not an authority or security boundary.
+- Python workers run separately from the core, are supervised and restartable, and receive only scoped task inputs and authorized context.
+- Worker crashes, dependency failures or restarts must not crash or compromise the core.
+- All worker requests and results use versioned, language-neutral contracts.
+- Models and workers may propose actions; deterministic validation and the central permission broker govern execution.
+- Worker concurrency, memory, CPU, GPU and execution time remain bounded by the resource manager.
+
+### Worker IPC
+
+Use versioned JSON messages over supervised local IPC as the initial internal worker protocol. Requests and responses must support correlation IDs, trusted execution context, deadlines, cancellation, structured errors and protocol-version negotiation. Standard output is reserved for protocol messages and standard error for diagnostics. Large payloads should use scoped, access-controlled temporary-file references rather than embedding large binary data in JSON.
+
+The public/client API remains distinct from internal worker IPC. gRPC/Protocol Buffers may be reconsidered if measured throughput, schema or streaming requirements justify the additional infrastructure.
+
+### Inference architecture
+
+- A central model manager owns model discovery, routing, lifecycle, resource accounting and concurrency.
+- llama.cpp is the initial local LLM backend.
+- ONNX Runtime is the specialized inference backend where a model and a validated execution provider make it appropriate.
+- Backends implement a common internal inference contract; no single runtime is forced to handle every model type.
+- Share runtime/model instances where practical and avoid unnecessary duplicate GPU/VRAM allocations.
+- Backend and execution-provider support must be validated per OS, GPU vendor, driver and model. Do not promise universal hardware acceleration.
+- Gaming Mode and all existing resource-protection rules remain mandatory.
+
+### Persistence and search
+
+- SQLite is the initial personal desktop database; PostgreSQL is the shared-server database.
+- Keep domain logic independent of database-specific SQL and maintain backend-specific migrations where required.
+- SQLite WAL may be used for desktop concurrency, respecting its single-writer and filesystem constraints.
+- Package a maintained SQLite release containing applicable WAL fixes; pin and test the actual shipped version.
+- PostgreSQL row-level security may provide defence in depth, but application authorization remains mandatory. Database roles and table ownership must not accidentally bypass intended policies.
+- SQLite FTS5 is the initial local full-text search implementation. Vector search, embeddings and reranking remain subject to separate evaluation.
+
+### Plugin and native-worker isolation
+
+- Use Wasmtime/WebAssembly as the preferred portable sandbox for community plugins where the required capabilities fit its component/host interface.
+- Native integration workers remain a separate, more restricted execution path for OS-specific capabilities.
+- Process separation alone is not a sandbox. Apply OS-enforced filesystem, network, process and resource restrictions.
+- Linux and Windows sandbox implementations must be validated independently; Bubblewrap and AppContainer are initial candidates, not guarantees of identical isolation.
+- Every privileged operation continues to pass through the central permission broker. Sandboxes do not replace authorization.
+
+### Durable workflows and events
+
+Begin with an internal typed event system and a database-backed durable workflow engine, including checkpoints, cancellation, bounded retries and idempotency/deduplication controls. Use a transactional outbox where needed to avoid losing committed state transitions. Do not claim exactly-once external effects where integrations cannot guarantee them. Consider NATS, Temporal or another external system only when measured deployment and scaling requirements justify it.
+
+### Constraints and validation
+
+- This is an approved initial technology direction, not permission to skip detailed design, threat modelling, compatibility testing or performance measurement.
+- Pin and audit dependencies; establish supported version policies and update procedures.
+- Validate Linux and Windows packaging, worker supervision, sandboxing, GPU/runtime combinations, recovery and upgrade/rollback behaviour.
+- Keep hardware-specific functionality behind platform/backend adapters.
+- Licensing remains deferred and must be reviewed before architecture finalisation and public release.
+- The existing `~/local-assistant` project remains reference-only; this architecture does not authorize code reuse or dependency on that build.
+
+### Not decided
+
+Exact crate and package versions, Rust/Python API schemas, Python environment distribution, process launch/supervision details, IPC framing, inference model catalogue, GPU execution-provider matrix, database schemas and migrations, encryption/key management, plugin component ABI/manifest, sandbox profiles, workflow schema, build system, packaging, update/rollback implementation and licensing.
