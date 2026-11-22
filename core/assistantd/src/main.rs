@@ -602,9 +602,9 @@ mod tests {
     #[tokio::test]
     async fn frame_reader_accepts_one_bounded_line() {
         let (mut writer, mut reader) = tokio::io::duplex(32);
-        writer.write_all(b"{\\"version\\":1}\\n").await.unwrap();
+        writer.write_all(b"{\"version\":1}\n").await.unwrap();
         let frame = read_frame(&mut reader).await.unwrap();
-        assert_eq!(frame, br#"{\"version\":1}"#);
+        assert_eq!(frame, br#"{"version":1}"#);
     }
 
     #[tokio::test]
@@ -621,7 +621,7 @@ mod tests {
     #[tokio::test]
     async fn frame_reader_rejects_multiple_frames_in_one_read() {
         let (mut writer, mut reader) = tokio::io::duplex(32);
-        writer.write_all(b"one\\ntwo\\n").await.unwrap();
+        writer.write_all(b"one\ntwo\n").await.unwrap();
         let error = read_frame(&mut reader).await.unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     }
