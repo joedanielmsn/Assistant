@@ -906,3 +906,288 @@ These decisions establish product direction, not final cryptographic or implemen
 
 The choice of a master password plus recovery key must be reconciled with unattended desktop startup and secure key caching. No plaintext key material may be exposed to ordinary workers or plugins. A recovery key must not become a hidden bypass of user/workspace authorization.
 
+
+
+## ADR-024 — Security threat model and enforceable worker isolation
+
+**Status:** Approved technical direction; implementation validation required  
+**Date:** 2026-11-22
+
+### Threat model
+
+Use a documented threat model, maintained per release and revisited when trust boundaries or capabilities change. Cover at minimum:
+- Malicious or compromised plugins, specialist workers, model outputs, documents, browser pages and tool responses.
+- Prompt injection and instruction-like content in untrusted inputs.
+- Compromised desktop clients, local IPC callers, credentials, update channels, package registries and build dependencies.
+- Cross-user/workspace data disclosure, confused-deputy behaviour and background-task privilege drift.
+- Malicious or compromised administrators in shared-server deployments, while documenting limits of protection from a machine/root administrator.
+- Denial of service through resource exhaustion, runaway workflows, model loading and malicious packages.
+- Supply-chain compromise, signing-key compromise, downgrade/replay attacks and vulnerable dependencies.
+- Physical device loss and offline access to copied data.
+
+Use STRIDE-style threat analysis and OWASP ASVS 5.0 as a security verification reference for applicable API and service controls. This is a baseline, not a claim of certification.
+
+### Mandatory security boundaries
+
+- The central permission broker remains the authoritative policy decision point for assistant-initiated privileged actions.
+- No model, plugin, specialist or automation can mint identity, widen scope, grant itself permissions or invoke privileged helpers directly.
+- Treat all external content and model-generated plans/tool arguments as untrusted data.
+- Validate identity, workspace membership, resource ownership, path/target, operation and policy at execution time.
+- Use least privilege, deny-by-default behaviour, bounded execution and cancellation.
+- Do not expose unrestricted host sockets, D-Bus, credentials, home directories, process namespaces or privileged file descriptors to untrusted workers.
+- Do not place long-lived secrets in command-line arguments, environment variables, logs, crash reports or worker-readable temporary files.
+- Fail closed when a required sandbox or authorization control is unavailable. Any compatibility mode that weakens isolation must be explicit, visibly reported and disabled for untrusted community plugins by default.
+
+### Linux native-worker isolation
+
+Use layered, unprivileged isolation:
+- Bubblewrap mount/user/PID/IPC/network namespaces with an explicitly constructed minimal filesystem view.
+- Landlock rules to restrict filesystem and supported network access further.
+- Seccomp-BPF filters to reduce the syscall surface.
+- Drop capabilities, set no-new-privileges, apply resource limits/cgroups where available, and use read-only mounts by default.
+- Expose only task-specific directories and explicitly brokered communication endpoints.
+- Do not pass unrestricted D-Bus, session bus, host agent sockets, display server or desktop-control sockets into a worker. Use narrow proxies or dedicated broker APIs when a capability is required.
+- Validate the actual kernel ABI/features at runtime; do not assume all supported Linux systems provide identical controls.
+
+Bubblewrap arguments and mounts define the effective boundary; its presence alone is not proof of a secure sandbox. Landlock and seccomp are additional restrictions, not substitutes for correct namespace and mount design.
+
+### Windows native-worker isolation
+
+Use AppContainer where compatible, with explicit capability grants and ACLs, low-integrity/restricted execution where applicable, network restrictions and Job Objects for process/resource lifecycle controls. Validate packaged and unpackaged deployment modes independently. If a required worker cannot run within the intended isolation boundary, do not silently fall back to an unrestricted process.
+
+### WebAssembly plugin isolation
+
+- Wasmtime is the preferred portable plugin runtime.
+- No ambient filesystem, network, environment, clock, process or host API access by default.
+- Grant explicit, narrowly scoped host capabilities through versioned interfaces.
+- Apply fuel/instruction, memory, table, stack, execution-time and concurrency limits.
+- Version and validate host-call contracts; all privileged host calls route through the permission broker.
+- Treat a WASM sandbox as one layer, not as proof that plugin logic or its inputs are trustworthy.
+
+### Security verification gates
+
+Before a component or plugin class is promoted:
+- Automated tests verify filesystem, network, process, IPC and privilege boundaries.
+- Test negative cases and attempted boundary escapes, not only successful workflows.
+- Fuzz parsers, IPC framing, manifests, protocol decoders and untrusted input boundaries.
+- Run dependency and vulnerability scanning, static analysis, secret scanning and produce an SBOM.
+- Test worker crash, timeout, cancellation, restart and resource-exhaustion behaviour.
+- Review permission-broker bypass attempts and cross-user/workspace isolation.
+- Conduct independent security review before broad public release and after material changes to the trust model.
+- Publish a private vulnerability reporting path and coordinated disclosure policy.
+
+References: [OWASP ASVS 5.0](https://asvs.owasp.org/), [Bubblewrap](https://github.com/containers/bubblewrap), [Linux Landlock](https://docs.kernel.org/userspace-api/landlock.html), [Linux seccomp](https://docs.kernel.org/userspace-api/seccomp_filter.html), [Microsoft application isolation](https://learn.microsoft.com/en-us/windows/security/book/application-security-application-isolation).
+
+### Not decided
+
+Exact syscall profiles, kernel feature minimums, per-worker mount/capability profiles, Windows capability sets, Wasmtime configuration, resource quotas, threat-model templates and test harnesses require implementation-specific validation.
+
+## ADR-025 — Encryption, key hierarchy and database isolation
+
+**Status:** Approved technical direction; cryptographic review and implementation validation required  
+**Date:** 2026-11-22
+
+### Key hierarchy
+
+Use envelope encryption:
+- Generate cryptographically random data-encryption keys (DEKs); do not derive content-encryption keys directly from human passwords.
+- Encrypt data with DEKs using authenticated encryption.
+- Use a password-derived key-encryption key (KEK) to wrap the user's root/private DEK hierarchy.
+- Generate an independent, high-entropy recovery key that can separately unwrap the recovery-protected root key. The recovery key is not an authorization token and does not grant access outside the user's existing identity and scopes.
+- Derive domain-separated subkeys for user-private data, workspace data, credentials and other distinct purposes. Do not reuse one raw key across unrelated purposes.
+- Version all encrypted envelopes and key metadata to support safe algorithm/parameter upgrades and rotation.
+- Bind relevant identity, tenant, workspace, object type, object ID and format version as authenticated associated data to prevent ciphertext substitution across scopes.
+- Use established, maintained cryptographic libraries and standard constructions; never design custom cryptographic algorithms or protocols.
+
+### Password and recovery handling
+
+- Use Argon2id for master-password key derivation, with a unique random salt per key hierarchy and parameters stored in versioned metadata.
+- Start from the RFC 9106 memory-constrained profile (64 MiB, three passes, four lanes) as a compatibility baseline, then benchmark and raise parameters where supported without making recovery impractical. Revisit parameters as hardware changes.
+- Keep the recovery key separate from the master password; show it once during setup, require the user to confirm safe storage, and provide a deliberate recovery test.
+- If both master password and recovery key are lost, encrypted data is unrecoverable. State this plainly; do not provide a hidden backdoor.
+- A master-password change rewraps the root key; it must not require re-encrypting all user data.
+- Key rotation must support rewrapping and, where necessary, staged data-key rotation without losing access to backups.
+
+### Session unlock and key custody
+
+- The master password is required to unlock the private-data key hierarchy after a fresh OS login by default.
+- Keep unwrapped keys only in the core's protected memory while unlocked; never pass root keys or password-derived keys to model/plugin workers.
+- Locking the assistant, logging out, or reaching a configured inactivity policy clears in-memory key material on a best-effort basis and stops/pauses private-data tasks that cannot safely continue.
+- Optional per-device convenience unlock using the OS credential vault may be offered as an explicit opt-in, clearly explaining that it delegates unlock trust to the OS account. It is off by default and can be revoked.
+- Unattended tasks must not silently bypass a locked user's encryption boundary. They may continue only with explicitly scoped non-sensitive data or a separately approved device/workload unlock policy.
+
+### Cryptographic construction direction
+
+- Use a reviewed authenticated-encryption construction for records and metadata, and a streaming authenticated-encryption API for large files/attachments.
+- XChaCha20-Poly1305 and libsodium secretstream are the initial candidates for the encrypted payload layer, subject to Rust binding maintenance, platform packaging, independent review and interoperability tests.
+- Use a reviewed KDF for deriving subkeys from random root keys; keep contexts/domain labels distinct.
+- Encrypt backups and synchronized private payloads before they leave the originating device.
+- Do not treat TLS or encrypted disks as substitutes for application-level end-to-end encryption.
+
+### Database isolation
+
+**Personal desktop:**
+- Keep one private database per OS user/installation with restrictive filesystem permissions.
+- Use full database encryption (SQLCipher or an equivalently reviewed SQLite encryption approach) for sensitive local persistence; verify FTS5/build compatibility and maintenance before selecting the exact library.
+- Encrypt attachments and large blobs independently; temporary plaintext is minimized and stored in private task directories.
+- Derived indexes and caches must be encrypted or treated as rebuildable sensitive data with equivalent access restrictions.
+
+**Shared server:**
+- Use PostgreSQL with application-enforced authorization on every query path and tenant/workspace scope.
+- Use PostgreSQL row-level security as defence in depth, with non-owner runtime roles, no BYPASSRLS, and FORCE ROW LEVEL SECURITY where appropriate. Do not rely on RLS as the sole authorization mechanism.
+- Encrypt private user payloads and workspace-sensitive payloads at the application layer with distinct key scopes; encrypt storage/backups and require TLS in transit.
+- Keep user-private keys separate from workspace keys. Workspace membership changes and device revocation trigger the required key-distribution/rotation process.
+- Prevent privileged database maintenance identities from becoming ordinary application identities; document that a server/root administrator can ultimately access host memory and infrastructure.
+
+### Search, deletion and retention
+
+- Decrypt only within an authorized core path for search/retrieval; workers receive only the minimum authorized plaintext context.
+- Minimize sensitive plaintext in database indexes, logs, caches, crash dumps and telemetry (telemetry is disabled by product decision).
+- Treat indexes, embeddings, summaries, temporary files and caches as derived sensitive data; propagate correction/deletion/revocation or rebuild them.
+- Document backup expiry separately from live deletion. Do not claim immediate erasure from immutable/offline backups.
+- Use cryptographic erasure only where key scope and backup design make the guarantee technically defensible.
+
+References: [RFC 9106 Argon2](https://www.rfc-editor.org/rfc/rfc9106.html), [libsodium key derivation](https://doc.libsodium.org/key_derivation), [libsodium secretstream](https://doc.libsodium.org/secret-key_cryptography/secretstream).
+
+### Not decided
+
+Final cryptographic library/version, exact AEAD and envelope formats, SQLCipher integration, password parameter tuning, memory-locking strategy, OS-vault adapters, database schema, key rotation schedule and backup erasure guarantees require code-level review and independent security validation.
+
+## ADR-026 — Self-hosted end-to-end encrypted synchronization
+
+**Status:** Approved technical direction  
+**Date:** 2026-11-22
+
+- Synchronization is self-hosted only; no project-operated managed sync service is planned.
+- A sync server stores and relays encrypted private payloads and metadata required for delivery. It must not need plaintext access to user-private content.
+- Require authenticated device enrollment, per-device cryptographic identity, revocation and auditable device lists.
+- Enroll a new device only through an existing trusted device or the user's recovery process, with explicit user approval.
+- Use TLS 1.3 or a later secure standard for transport, in addition to application-level end-to-end encryption.
+- Use separate cryptographic key boundaries for user-private data and workspace-shared data. Workspace key distribution is limited to authorized members/devices.
+- Device revocation prevents future access and triggers rotation/re-encryption of affected keys where feasible. Explain that revocation cannot erase plaintext or keys already copied to a previously authorized, offline or compromised device.
+- Synchronize versioned objects with causal/version metadata. Merge only data types with well-defined, tested merge semantics; surface ambiguous or destructive conflicts.
+- Preserve conflict copies and history until user resolution or retention policy expiry.
+- Treat synchronization as replication, not backup. Backups remain a separate encrypted, versioned recovery system.
+- Support offline operation and bounded retry; reconnect must not silently replay non-idempotent external actions.
+- Document metadata visible to the self-hosted server, including account/device identifiers, sizes, timing and routing information.
+
+### Not decided
+
+Exact wire protocol, device key agreement, server implementation, object version format, conflict algorithms by data type, workspace key rotation, discovery/onboarding UX and operational deployment profiles require detailed design and cryptographic review.
+
+## ADR-027 — Hardware compatibility and inference backend policy
+
+**Status:** Approved technical direction; hardware matrix remains validation-driven  
+**Date:** 2026-11-22
+
+### Support policy
+
+- x86-64-v3 remains the initial CPU baseline.
+- CPU inference is the universal fallback; GPU acceleration is an optional capability detected and validated at runtime.
+- NVIDIA receives first validation priority. AMD and Intel remain supported-target goals, but each OS/driver/backend combination must pass testing before being advertised as supported.
+- Never infer GPU capability from vendor name alone. Detect device identity, driver/runtime versions, memory capacity and available execution providers.
+- Distinguish the display GPU from the compute GPU on hybrid-graphics laptops. Allow user override and avoid forcing the discrete GPU when it would harm battery life or game performance.
+- Model placement and offload must account for actual free VRAM, shared memory, context/KV cache, other processes and Gaming Mode.
+- Support partial CPU/GPU offload and quantized models where the backend/model format permits; fall back cleanly when acceleration is unavailable or unstable.
+- No model download or automatic backend installation may silently replace drivers or weaken system security.
+
+### Initial backend validation matrix
+
+- llama.cpp: CPU baseline; NVIDIA CUDA first; AMD HIP and Vulkan; Intel SYCL/Vulkan where supported by tested hardware and builds.
+- ONNX Runtime: CPU baseline; NVIDIA CUDA; Intel OpenVINO; Windows GPU provider selection validated against current support status. DirectML is not assumed to be the long-term default because its provider documentation describes sustained engineering and points Windows deployments toward WinML.
+- Keep backend adapters replaceable. Do not expose provider-specific details as permanent user-facing model identities.
+
+### Validation requirements
+
+Maintain a public compatibility matrix covering OS, CPU, GPU, driver, runtime/backend version, model format and tested capabilities. Include:
+- Load/unload reliability and memory accounting.
+- Token throughput/latency and specialized-model latency.
+- Peak VRAM/RAM, CPU usage, thermals and power behaviour.
+- Hybrid GPU routing, sleep/resume, driver reset and device loss.
+- Gaming Mode contention and recovery.
+- CPU fallback and graceful degradation.
+- Reproducible benchmark methodology and representative model sizes.
+
+The initial RTX 3050 4 GB development system is a useful constrained validation target, not a universal minimum GPU requirement.
+
+References: [llama.cpp build backends](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md), [ONNX Runtime execution providers](https://onnxruntime.ai/docs/execution-providers/), [ONNX Runtime DirectML status](https://onnxruntime.ai/docs/execution-providers/DirectML-ExecutionProvider.html).
+
+### Not decided
+
+Exact minimum RAM/GPU memory recommendations, supported driver versions, official backend build matrix, model catalogue, performance thresholds and certified hardware list must be established by measured tests.
+
+## ADR-028 — Conventional rolling updates, snapshots and secure release metadata
+
+**Status:** Approved technical direction  
+**Date:** 2026-11-22
+
+### Operating-system update model
+
+- Use conventional curated rolling package updates through signed native packages and repositories.
+- Maintain testing and stable promotion channels; upstream updates are inputs, not automatic releases.
+- Require package signature verification and trusted-key validation. Never recommend disabling signature checks to work around repository or keyring problems.
+- Perform preflight checks for disk space, package conflicts, critical service health and known incompatible transitions.
+- On Btrfs installations, provide supported pre-update snapshots and recovery entries for the relevant system subvolumes.
+- On ext4 installations, provide documented package-cache downgrade and backup/recovery procedures; do not promise snapshot rollback.
+- Snapshot rollback is not automatically a complete rollback of bootloader/EFI state, external data, firmware changes, databases or user files. Document the boundaries and test boot consistency.
+- Keep a recovery environment and documented offline repair procedure.
+- Do not automatically roll back user data or assistant databases as part of an OS rollback without explicit compatibility and backup handling.
+
+### Platform application, plugins and model assets
+
+- Use signed release artifacts and verifiable provenance.
+- Adopt The Update Framework (TUF) or a compatible implementation for application/plugin registry metadata and downloadable artifacts where appropriate, to defend against compromised mirrors, stale metadata and rollback attacks.
+- Maintain offline or threshold-protected root trust, delegated roles, key rotation and metadata expiry.
+- Use transparency/provenance tooling such as Sigstore where useful for build attestations; it supplements rather than replaces trusted update metadata and policy.
+- Keep OS package-signing trust and application/plugin registry trust separate.
+- Plugin and model downloads are data/code supply-chain inputs and must be verified before installation or activation.
+- Updates that change plugin capabilities or permissions require renewed review and authorization.
+
+### Recovery and release quality
+
+- Test clean install, upgrade, interrupted upgrade, failed boot, package downgrade, snapshot restore, data restore and recovery media.
+- Retain known-good artifacts and package versions sufficient for supported recovery windows.
+- Publish release notes, compatibility warnings, known issues and recovery steps.
+- Use staged rollout and halt promotion when critical regressions or security issues appear.
+- Generate SBOMs and preserve source revision, toolchain, dependency and build provenance for each release.
+
+References: [TUF specification](https://theupdateframework.github.io/specification/latest/), [Arch package signing](https://wiki.archlinux.org/title/Pacman/Package_signing), [Sigstore](https://docs.sigstore.dev/about/overview/).
+
+### Not decided
+
+Exact snapshot tooling/layout, boot integration, retention count, package cache policy, TUF role thresholds, signing-key custody ceremony, rollout percentages, supported recovery window and Windows update/rollback implementation remain detailed design work.
+
+## ADR-029 — Plugin supply-chain trust, registry and licence governance
+
+**Status:** Approved technical direction  
+**Date:** 2026-11-22
+
+### Plugin trust and lifecycle
+
+- Plugin signatures establish publisher/integrity provenance, not that a plugin is benign or safe.
+- Require a versioned manifest declaring publisher, package identity, version, dependencies, requested capabilities, network destinations, resource requirements and supported platform/runtime.
+- Verify package digest, signature, provenance and registry metadata before installation.
+- Use separate trust levels for verified, community and local plugins; present the level and requested capabilities clearly.
+- Keep new or updated plugins inactive until required permissions are reviewed. Material changes to capabilities, dependencies or publisher identity trigger renewed review.
+- Run plugins in the narrowest suitable Wasmtime or native-worker sandbox; enforce per-plugin resource and network restrictions.
+- Route all privileged host capabilities through typed broker APIs.
+- Uninstall/disable revokes grants and scoped credentials and cancels subscriptions/scheduled tasks. Preserve user data unless explicitly deleted.
+- Support official and independent third-party registries. Registry selection does not bypass signature, manifest, sandbox or broker checks.
+
+### Licence and supply-chain governance
+
+- Do not choose the core project licence yet. Complete a project-wide review before architecture sign-off and public release.
+- Maintain SPDX identifiers and licence expressions for first-party components and dependencies.
+- Generate and publish an SBOM for release artifacts; include transitive dependencies and bundled assets.
+- Review Rust crates, Python packages, Qt modules, native libraries, codecs, fonts, icons, themes, kernels, drivers, firmware, model weights, datasets and documentation assets separately.
+- Establish component-specific allow/deny/review rules. Do not assume the application, OS distribution, plugin SDK, plugins, model weights and datasets share one licence.
+- Require provenance and licence information for official plugins and models. Community submissions must disclose source and licence; unresolved or incompatible rights block official promotion.
+- Use automated licence/SBOM checks as triage, not as a substitute for legal review.
+- Evaluate contributor terms, patent grants, trademark/branding, source-distribution obligations, notices, attribution and model-use restrictions before final licence selection.
+- Plugin authors may use compatible open-source licences as approved in ADR-023; compatibility must be checked against the eventual host/API distribution arrangement.
+
+References: [SPDX licence list](https://spdx.org/licenses/), [Apache licence compatibility FAQ](https://www.apache.org/foundation/license-faq.html), [Sigstore overview](https://docs.sigstore.dev/about/overview/).
+
+### Not decided
+
+Core licence, contributor agreement/CLA policy, plugin SDK licence, official model catalogue licence policy, trademark policy, registry moderation rules and exact SBOM tooling remain deferred until the project-wide review.
