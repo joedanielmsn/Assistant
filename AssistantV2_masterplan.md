@@ -1834,3 +1834,15 @@ ADR-034 clarifies the local-first cloud policy:
 - Cloud requests are functional user-authorized traffic, not telemetry.
 
 See ADR-034 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+## 49. No-telemetry and diagnostics policy — 22 November 2026
+
+ADR-035 formalizes the no-telemetry decision:
+- No analytics, usage tracking, behavioural profiling, remote crash reporting or automatic diagnostic uploads.
+- Diagnostics and logs remain local, access-controlled and retention-limited.
+- Users can preview and explicitly export redacted diagnostic bundles.
+- Functional network requests for configured sync, cloud inference, package updates and plugin/model downloads remain allowed and disclosed; they are not analytics.
+- Server audit records are narrowly scoped, configurable and separate from product analytics. They must not expose private content to administrators by default.
+
+See ADR-035 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
