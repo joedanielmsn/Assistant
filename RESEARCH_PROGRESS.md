@@ -325,3 +325,24 @@ No implementation stack has been approved as a whole, and implementation has not
 - Revisit licensing before architecture finalisation and public release.
 
 The initial technology direction is approved, but detailed implementation specifications, compatibility/security validation and release engineering are not complete. Implementation has not started.
+
+### Additional approved consolidation decision — repository, build and release architecture
+
+**ADR-022 approved on 22 November 2026.**
+
+- Use a platform monorepo for the Rust core, Qt/QML desktop, Python workers, plugins/SDK and shared platform tooling.
+- Maintain the CachyOS-derived Linux distribution in a separate repository with its own build, testing and release cadence.
+- Use Cargo workspaces for Rust, CMake + Ninja for Qt, and uv-managed locked environments for Python workers.
+- Use GitHub Actions as the initial CI/CD platform, with Linux/Windows build matrices and separate hardware-dependent inference validation.
+- Prefer native Linux packages; maintain signed distribution repositories and controlled testing/stable promotion.
+- Package Windows desktop deployment with required Qt dependencies and separately managed core/worker components where practical.
+- Require pinned dependencies, traceable release artifacts, compatibility checks, staged updates and documented recovery/rollback.
+
+### Remaining build/release research
+
+- Define repository layout, branch/review policy and component version compatibility.
+- Specify CI workflows, runner strategy, artifact retention and release provenance.
+- Select Windows installer and exact Linux package formats.
+- Design signing-key custody/rotation, package promotion and update/rollback mechanisms.
+- Validate clean builds, reproducibility, upgrades and recovery on supported Linux and Windows systems.
+- Keep licensing review scheduled for architecture finalisation and public release.
