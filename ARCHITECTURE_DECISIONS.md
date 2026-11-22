@@ -253,3 +253,38 @@ Use one authoritative core as the platform's control and security boundary. Desk
 ### Not decided
 
 Concrete HTTP server/library, WebSocket implementation, API schema format, local socket/pipe path and ACL details, passkey implementation, external identity-provider protocols, session/token format and lifecycle, LAN exposure controls, VPN/tunnel integration, API compatibility policy and worker-specific transport remain subject to implementation research.
+
+
+## ADR-008 — Adaptive resource management and workload scheduling
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use a hybrid resource-management strategy: enforce fixed safety boundaries while dynamically scheduling workloads according to priority, current resource pressure and available capacity.
+
+| Dimension | Approved direction |
+|---|---|
+| Scheduling | Hybrid fixed safety limits with adaptive priority scheduling |
+| User-facing modes | Normal, Performance, Gaming and Battery/Quiet, with automatic adaptation |
+| Model lifecycle | Retain frequently used models; unload idle models when memory pressure rises; support configurable idle timeouts |
+| Multi-user fairness | Weighted fair scheduling per user, individual concurrency limits and priority for interactive tasks |
+
+### Mandatory behaviour
+
+- Coordinate CPU, RAM, GPU and VRAM management through a central resource manager.
+- Observe actual resource pressure and foreground workload demand; do not rely only on static utilization thresholds.
+- Fixed safety limits remain in force even when adaptive scheduling changes workload allocations.
+- Prioritize foreground responsiveness and active user-requested work over deferrable background activity.
+- Pause, defer or reduce nonessential indexing, maintenance, downloads and automations under resource pressure.
+- Avoid unnecessary duplicate model instances; share runtimes where practical.
+- Model loading and unloading must account for memory pressure, expected reuse and configurable idle timeouts.
+- Gaming Mode continues to follow ADR-006: aggressively prioritize the game, avoid assistant GPU inference, optionally retain a tiny CPU-only model and lightweight tools, enforce adaptive CPU/RAM limits, and pause nonessential background work.
+- Performance and Battery/Quiet modes must respect system stability and user-selected preferences.
+- Shared-server scheduling must prevent one user from monopolizing resources while preserving interactive responsiveness and avoiding indefinite starvation.
+- Resource controls should use platform-native mechanisms where appropriate, behind platform adapters rather than leaking OS-specific behaviour into core scheduling policy.
+
+### Not decided
+
+Exact CPU/RAM/GPU/VRAM safety limits, scheduling weights and algorithms, mode-specific budgets, adaptation thresholds, model idle timeouts, GPU preemption/unload behaviour, power/thermal policy, platform APIs and hardware-specific validation remain implementation research topics.
