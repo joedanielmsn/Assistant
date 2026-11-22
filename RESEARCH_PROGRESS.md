@@ -212,3 +212,32 @@ Approved:
 Deferred implementation details:
 - Sync protocol, managed-service operations, cryptographic and key-recovery protocols.
 - Backup formats, retention periods, export schemas, migration tooling, conflict-resolution algorithms and deletion guarantees.
+
+
+## Phase 7 — AI-first Linux distribution architecture
+
+**Status:** Complete — major architecture direction approved on 22 November 2026.
+
+Approved:
+- Build on CachyOS as the technical foundation while creating an independently designed and maintained distribution, not a simple reskin.
+- Establish independent branding, visual language, desktop defaults, settings experience, system utilities and workflows.
+- Use KDE Plasma as the initial desktop foundation with a substantially redesigned experience; retain modularity for future changes.
+- Make assistant integration a first-class part of the OS from the beginning. The distribution is deliberately AI-first.
+- AI services can be paused or disabled without breaking ordinary OS and desktop functionality.
+- Keep privileged system operations subject to the central permission broker; system integration does not grant unrestricted authority.
+- Maintain our own repositories, build/testing pipeline, release identity, documentation and quality controls.
+- Use a curated rolling-release model with our own testing and stable channels; upstream CachyOS updates are not automatically promoted.
+- Preserve developer, gaming, laptop hardware compatibility, installation and recovery as core requirements.
+
+Deferred implementation details:
+- Distribution name/branding and exact CachyOS components to reuse or replace.
+- Repository/build infrastructure, signing and package promotion policy.
+- KDE customisation and desktop integration implementation.
+- Kernel variants, installer, filesystem/partitioning defaults and Secure Boot.
+- Hardware profiles, recovery, rollback and release-support policy.
+
+See ADR-016 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Section 35.
+
+## Architecture discovery status
+
+The six assistant-platform architecture domains and the AI-powered Linux distribution direction have now been researched and approved at the architectural level. The next stage is architecture consolidation and cross-cutting review before implementation planning. No implementation technology stack has been finalised.
