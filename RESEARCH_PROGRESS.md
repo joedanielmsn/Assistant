@@ -13,6 +13,7 @@
 | Deployment profiles | Approved | Shared platform supports desktop service, standalone desktop, headless/server and optional future system-integrated profiles |
 | Multi-user architecture | Approved | Support personal per-OS-user installations and shared multi-user servers, with explicit identities/workspaces and strict private-data boundaries |
 | Data ownership and persistence | Approved | Four logical scopes: installation, user, workspace and task/session; private by default, explicit sharing, owner-scoped background tasks and lifecycle controls |
+| Central permission broker | Approved | Hybrid RBAC + ABAC; risk-based approval; user-wide grants bounded by user/data ownership; configurable lifetimes; deny-by-default, previews, audit, cancellation, revocation and emergency stop |
 
 See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
 
@@ -28,18 +29,9 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 
 ## Next research topic
 
-**Central permission broker and authorization lifecycle**
+**Core/process boundaries and lifecycle model**
 
-Research and define:
-- Identity, authentication, authorization, approval, execution and audit as distinct stages.
-- Central enforcement for agents, plugins, integrations, tools and automation.
-- Policy approaches: RBAC, ABAC, capability-based permissions and practical hybrid options.
-- Scope, duration, expiry, revocation and delegated authority.
-- Approval tiers, action previews, risk/reversibility and user-configurable autonomy.
-- Background task authorization, cancellation, audit trails and emergency stop.
-- A practical initial-release design that preserves future extensibility.
-
-Present a recommendation and explicit decision checkpoint. Do not record it as approved until the user confirms.
+Define the authoritative core, client interfaces, module/process boundaries, worker lifecycles, failure isolation and minimum viable cross-platform deployment topology. Keep the design consistent with the approved per-user desktop and future shared-server profiles. Do not select transports or technologies without comparative evaluation.
 
 ## Deferred / undecided
 
