@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Requirements discovery completed; architecture and technology selection pending.
+**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction and data ownership boundaries approved; implementation technologies remain unselected.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
@@ -910,8 +910,128 @@ When this document is uploaded into a new conversation:
 
 **Existing repository:** Reference only, not the foundation.
 
-**Next step:** Fresh technology research and architecture comparison. Do not start coding yet.
+**Next step:** Continue Stage 1A architecture research, beginning with the central permission broker and authorization lifecycle. Do not start coding yet.
 
 ---
+
+
+
+# 22. APPROVED ARCHITECTURE: DEPLOYMENT, MULTI-USER AND DATA OWNERSHIP
+
+This section records architecture directions explicitly approved during discovery on 22 November 2026. These decisions define requirements and boundaries; they do not select implementation technologies.
+
+## 22.1 Deployment profiles
+
+The platform should support four deployment profiles over shared core capabilities:
+
+1. **Desktop service:** the core starts at user login and remains available when the main UI window closes. The UI connects independently. Background work runs only when permitted.
+2. **Standalone desktop:** the core starts with the GUI and the associated core stops when the application closes.
+3. **Headless/server:** no GUI is required; authenticated local or remote clients can connect, subject to explicit authorization.
+4. **Optional system-integrated mode:** deeper OS integration and approved system-level events may be supported later. Privileged actions remain brokered. This is not a requirement for the initial release.
+
+These are deployment profiles, not separate products or unrelated codebases. The same core capabilities should be reused.
+
+Platform lifecycle direction:
+- Linux desktop operation should default to a per-user background service, not a privileged system-wide daemon.
+- Windows desktop operation should use per-user background processes and a separate interactive desktop process; avoid placing the whole assistant in a privileged Windows service.
+- Headless operation should be supported.
+- Local IPC is not automatically trusted; clients must be authenticated and authorized.
+- Inference runtimes and specialist workers may have independent lifecycles.
+- Background workloads remain subject to user permissions and resource management.
+
+Exact service managers, IPC transports, authentication mechanisms and process implementations remain undecided.
+
+## 22.2 Multi-user architecture
+
+The approved direction is to support both:
+- **Personal per-OS-user desktop installations:** each OS user has an independent assistant core and private conversations, memory, settings, permissions and background tasks.
+- **Shared multi-user server deployments:** one managed core serves multiple authenticated users with strict data separation, per-user permissions, workspace membership and fair resource allocation.
+
+A shared server may host multiple workspaces, and a user may belong to more than one workspace. Private data remains private unless explicitly shared.
+
+Every operation must carry an authorization context identifying the user, workspace where applicable, acting component, requested resource and action. Background tasks retain the initiating owner's identity, scope and authorization; they do not gain broader rights by running on a shared worker.
+
+Server administration must be separated from unrestricted access to users' private data. Resource scheduling must be bounded machine-wide and fair across users.
+
+Initial delivery should prioritize the personal per-user core while designing identity, workspace and authorization interfaces for later shared-server operation. Multiple simulated users should be tested early.
+
+Database isolation, authentication technology, encryption and scheduler implementation remain undecided.
+
+## 22.3 Data ownership and persistence boundaries
+
+Information ownership is organized into four scopes. These are logical ownership boundaries and do not require four separate databases.
+
+### Installation scope
+Owns machine/server-level configuration, installed components and runtimes, detected hardware capabilities, machine-wide resource limits and server security configuration.
+
+### User scope
+Owns private conversations, personal memory, preferences, personal knowledge and documents, personal credentials, permissions and personal automation. User data is private by default and is not automatically shared.
+
+### Workspace scope
+Owns information deliberately shared within a workspace, such as shared projects, documents, workspace knowledge, shared integrations, tasks and workspace policies. Access is limited to authorized members and roles.
+
+### Task/session scope
+Owns temporary execution state, temporary files and results, agent context, approval state and execution history associated with a particular task or session. Temporary context is isolated and subject to expiry/cleanup.
+
+### Sharing and memory rules
+- Personal memory and workspace knowledge are distinct.
+- Personal information is never promoted to shared knowledge without explicit authorization.
+- Using information in a response is not the same as saving it permanently.
+- Conversation details do not automatically become long-term memory.
+- An agent working on a shared project may access only the personal context and project/workspace context it is authorized to use, not a user's entire private memory.
+- Sharing is explicit, scoped and revocable.
+
+### Authorization context
+Authorization decisions must consider the authenticated subject, resource, ownership scope, acting component, requested action and relevant conditions. Simple workspace roles (such as owner, administrator and member) may be combined with contextual attributes and policies.
+
+The trusted core establishes and validates identity and workspace context. Agents, plugins and workers cannot self-assert a user identity or choose an arbitrary workspace context.
+
+### Background work and shared compute
+Queued and delayed tasks retain trusted owner and workspace context, permissions, resource/operation scope, expiry and cancellation state. Authorization should be rechecked when a delayed task executes if membership or permissions may have changed.
+
+A shared inference runtime may serve multiple users, but conversation history, memory, retrieval results, caches, summaries, tool outputs and approval state must remain correctly scoped. Shared compute does not imply shared data or model context.
+
+### Lifecycle, export and deletion
+- Conversation persistence follows user-configured retention and deletion rules.
+- Long-term memory is user-controlled, reviewable and editable.
+- Project knowledge follows project ownership and lifecycle.
+- Temporary task context is removed after completion or expiry according to policy.
+- Background task state is retained only as needed for execution and configured history.
+- Audit records are access-restricted and should minimize sensitive content.
+- Caches and retrieval artifacts are scoped and expire.
+- Users need data export and deletion controls; projects need archive/deletion controls; workspace membership revocation must remove access.
+- Deletion and revocation must account for derived indexes, caches and delayed jobs.
+- Backup deletion and expiry must be documented honestly; deleting a live record does not necessarily erase every retained backup immediately.
+
+### Storage isolation direction
+Evaluate storage isolation according to sensitivity, threat model and operational requirements. Separate per-user or per-workspace stores can provide stronger boundaries with additional overhead; shared stores can be more efficient but require consistently enforced access policies. A hybrid approach is the current architectural direction to evaluate further. No database, schema, vector store or encryption/key-management technology is selected.
+
+### Approved principles
+1. Use installation, user, workspace and task/session ownership scopes.
+2. Keep personal data private by default.
+3. Require explicit sharing.
+4. Separate personal memory from shared project/workspace knowledge.
+5. Do not automatically promote temporary context into permanent memory.
+6. Authorize every resource operation.
+7. Establish trusted identity and workspace context in the core.
+8. Preserve owner authorization across background tasks.
+9. Keep user contexts isolated even when compute is shared.
+10. Choose storage isolation according to sensitivity and operational needs.
+11. Provide user-controlled export, deletion and retention.
+12. Account for derived data and delayed work when deleting or revoking access.
+13. Separate server administration from unrestricted access to private user data.
+
+## 22.4 Still open
+
+The following remain under research and must not be treated as approved implementation choices:
+- Database and object-storage technologies.
+- Separate databases, schemas, row-level isolation or other concrete tenancy mechanisms.
+- Authentication and session technology.
+- Encryption and key management.
+- Exact retention periods and backup lifecycle.
+- IPC transport and remote-client protocol.
+- Concrete resource scheduler and fairness algorithm.
+- Exact service/process topology and platform-specific implementation.
+
 
 **END OF MASTER PLAN**
