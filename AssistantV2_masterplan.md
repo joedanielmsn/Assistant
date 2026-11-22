@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership, central permission-broker policy, modular-core/selective-worker architecture and core/client communication direction approved; implementation technologies remain unselected.
+**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership, central permission-broker policy, modular-core/selective-worker architecture and core/client communication and adaptive resource-management direction approved; implementation technologies remain unselected.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
@@ -1200,3 +1200,50 @@ Worker and plugin identities are constrained by the core. They cannot impersonat
 - LAN exposure controls and VPN/tunnel integration.
 - API compatibility/version-support policy.
 - Whether any internal worker protocol should differ from the client API.
+
+
+# 27. APPROVED ARCHITECTURE: ADAPTIVE RESOURCE MANAGEMENT AND WORKLOAD SCHEDULING
+
+Approved on 22 November 2026. This establishes resource policy and scheduling direction, not final budgets, algorithms or implementation technologies.
+
+## 27.1 Scheduling strategy
+
+Use a hybrid strategy: enforce fixed safety boundaries while dynamically scheduling workloads according to priority, current resource pressure and available capacity. The resource manager coordinates CPU, RAM, GPU and VRAM rather than treating them as independent systems.
+
+## 27.2 User-facing performance modes
+
+Provide four built-in modes:
+- **Normal:** balanced everyday operation.
+- **Performance:** favour responsiveness and active user-requested work while respecting system safety.
+- **Gaming:** follow the aggressive game-priority behaviour in Section 25.
+- **Battery/Quiet:** reduce background activity and favour lower power/noise where the platform exposes suitable controls.
+
+Automatic adaptation should complement these modes without silently overriding explicit user preferences or safety limits.
+
+## 27.3 Model lifecycle
+
+Retain frequently used models when resources permit. Unload idle models when memory pressure rises, and support configurable idle timeouts. Avoid duplicate model instances where runtimes can be shared. Model lifecycle decisions should consider memory pressure, expected reuse, workload priority and the cost of reloading.
+
+## 27.4 Multi-user fairness
+
+Use weighted fair scheduling per user, individual concurrency limits and priority for interactive tasks. Prevent one user's workloads from monopolizing shared resources while avoiding indefinite starvation of lower-priority work.
+
+## 27.5 Resource-management requirements
+
+- Monitor CPU, RAM, GPU and VRAM availability and pressure.
+- Use adaptive scheduling within fixed safety limits.
+- Prioritize foreground responsiveness and active user-requested tasks.
+- Reduce, pause or defer nonessential indexing, maintenance, downloads and automations under pressure.
+- Apply platform-native resource controls through platform adapters.
+- Keep OS-specific mechanisms separate from the core scheduling policy.
+- Preserve the approved Gaming Mode requirements in Section 25.
+- Validate resource behaviour on constrained hardware and under simultaneous foreground workloads.
+
+## 27.6 Still open
+
+- Exact CPU/RAM/GPU/VRAM safety limits and mode-specific budgets.
+- Scheduling weights, queue algorithms and adaptation thresholds.
+- Model idle timeouts and GPU preemption/unload behaviour.
+- Power and thermal policy.
+- Linux and Windows resource-control APIs and concrete implementation.
+- Hardware-specific performance and fairness validation.
