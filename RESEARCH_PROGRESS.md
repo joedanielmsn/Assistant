@@ -17,6 +17,7 @@
 | Modular core and selective process isolation | Approved | Modular main core; isolate components only for independent lifecycle/resource needs, untrusted or sensitive work, failure containment, or specialised runtime/hardware requirements |
 | Gaming-mode resource protection | Approved | Aggressively prioritize the game; avoid assistant GPU inference, optionally retain a tiny CPU-only model and lightweight tools, enforce adaptive CPU/RAM budgets, and pause nonessential background work |
 | Core/client communication and IPC | Approved | Versioned HTTP-compatible API plus WebSocket events; Linux Unix-domain sockets; Windows named pipes; local identity verification; remote access opt-in via LAN or user-configured VPN/tunnel; built-in accounts with passkeys and optional external identity providers |
+| Resource management and scheduling | Approved | Hybrid fixed safety limits plus adaptive priority scheduling; Normal/Performance/Gaming/Battery-Quiet modes; pressure-aware model unloading with configurable idle timeouts; weighted fair per-user scheduling and concurrency limits |
 
 See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
 
@@ -26,6 +27,10 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 |---|---|---|
 | Overall architecture | Modular core with selectively isolated workers; avoid unnecessary microservices overhead | Approved; see ADR-005 |
 | Core/client model | One authoritative core; desktop, CLI, browser, companion and future clients use a common versioned API | Approved; see ADR-007 |
+| Resource scheduling policy | Fixed safety boundaries with adaptive priority scheduling | Approved; see ADR-008 |
+| Performance modes | Normal, Performance, Gaming and Battery/Quiet, with automatic adaptation | Approved; exact budgets and adaptation rules deferred |
+| Model lifecycle | Retain frequently used models; unload idle models under memory pressure with configurable idle timeouts | Approved; exact thresholds/timeouts deferred |
+| Shared-server fairness | Weighted fair scheduling per user, per-user concurrency limits and interactive-task priority | Approved; weights and algorithms deferred |
 | Client API and events | HTTP-compatible structured API plus WebSocket event stream | Approved direction; concrete libraries/schema deferred |
 | Local IPC | Linux Unix-domain sockets with peer checks; Windows named pipes with explicit ACLs; local connections are not implicitly trusted | Approved direction; exact paths/ACL implementation deferred |
 | Remote access and authentication | Remote access off by default; optional LAN/VPN/tunnel; built-in accounts with passkeys and optional external identity providers | Approved direction; concrete protocols/session implementation deferred |
@@ -34,9 +39,9 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 
 ## Next research topic
 
-**Resource manager and scheduling**
+**Intelligence architecture**
 
-Define adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, gaming-mode transitions, foreground responsiveness and fair scheduling across users. Validate the approved Gaming Mode direction against the development laptop. Routine scheduling and safety defaults will be selected autonomously; only major performance/product trade-offs will be brought to the user.
+Research the central orchestrator, specialist invocation, model routing, context construction, tool selection, bounded parallelism and reliable task execution. Preserve the approved resource manager and permission-broker boundaries. Routine implementation defaults will be selected autonomously; only consequential product or performance trade-offs will be brought to the user.
 
 ## Deferred / undecided
 
@@ -47,7 +52,7 @@ Define adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, ga
 - Authentication/passkey protocols, session/token technology and remote-access integration.
 - Database, vector store and concrete tenancy strategy.
 - Encryption and key management.
-- Exact resource scheduler implementation and workload budgets.
+- Exact resource scheduler implementation, workload budgets, adaptation thresholds and fairness weights.
 - Exact retention, backup and deletion periods.
 - Licensing (intentionally deferred; revisit at architecture finalisation and before public release).
 
@@ -89,3 +94,27 @@ Deferred implementation details:
 ## Next phase
 
 **Phase 2 — Resource manager and scheduling.** Research adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, gaming-mode transitions, foreground responsiveness and fair scheduling across users. Bring only major product/performance trade-offs to the user at the end of the phase.
+
+
+## Phase 2 — Resource management and scheduling
+
+**Status:** Complete — architecture direction approved on 22 November 2026.
+
+Approved:
+- Hybrid resource management: fixed safety boundaries with adaptive priority scheduling.
+- Built-in Normal, Performance, Gaming and Battery/Quiet modes, complemented by automatic adaptation.
+- Pressure-aware model lifecycle: retain frequently used models, unload idle models under memory pressure, and support configurable idle timeouts.
+- Weighted fair scheduling per user, individual concurrency limits and interactive-task priority.
+- Central coordination of CPU, RAM, GPU and VRAM, with platform-native resource controls behind platform adapters.
+- Existing Gaming Mode behaviour in ADR-006 remains mandatory.
+
+Deferred implementation details:
+- Exact resource budgets, mode-specific limits and adaptation thresholds.
+- Scheduling weights, queue algorithms and starvation prevention parameters.
+- Model idle timeouts and GPU unload/preemption implementation.
+- Power/thermal policies and concrete Linux/Windows APIs.
+- Hardware-specific performance validation.
+
+## Next phase
+
+**Phase 3 — Intelligence architecture.** Research the central orchestrator, specialist invocation, model routing, context construction, tool selection, bounded parallelism and reliable task execution. Bring only major product/design/performance trade-offs to the user at the end of the phase.
