@@ -525,3 +525,38 @@ Keep the platform fully useful locally and support opt-in synchronization throug
 ### Not decided
 
 Sync protocol, managed-service operations, cryptographic protocols and key recovery design, backup storage formats, retention periods, export schemas, migration tooling, conflict-resolution algorithms and deletion guarantees remain open.
+
+
+## ADR-016 — AI-first CachyOS-derived Linux distribution
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Build the project's AI-powered Linux distribution on top of CachyOS as its technical foundation, while creating an independently designed and maintained distribution identity. This is not intended to be a simple CachyOS reskin.
+
+### Approved direction
+
+- Use CachyOS as the upstream foundation and selectively reuse valuable infrastructure, packages, kernel work, hardware support and installation tooling where they meet the project's needs.
+- Create an independent distribution identity, including its name and branding, visual language, desktop defaults, settings experience, system utilities and user workflows. Do not simply inherit CachyOS's overall design.
+- Build the initial flagship desktop experience on KDE Plasma, with a substantially redesigned and integrated user experience. Keep the architecture modular enough to replace or extend desktop components later.
+- Make assistant integration a first-class part of the operating system experience from the beginning. The distribution is deliberately AI-first; users who do not want an AI-focused operating system can use CachyOS itself.
+- Integrate assistant capabilities into desktop and system workflows rather than treating the assistant as an unrelated optional application.
+- Preserve the ability to disable or pause AI services without breaking ordinary operating-system and desktop functionality.
+- Maintain our own distribution repositories, build and testing pipeline, release identity, documentation and quality-control process. CachyOS upstream updates are inputs, not automatic approvals for our releases.
+- Use a curated rolling-release model: validate updates through our own testing channel before promoting them to our stable channel.
+- Keep developer productivity, gaming, laptop hardware compatibility, installation, recovery and performance as core distribution requirements.
+- Prefer upstream components and minimise long-lived custom patches where practical to reduce maintenance burden.
+
+### Design constraints
+
+- The operating system must remain functional without AI inference, cloud access or a hosted account.
+- AI features must respect the platform's central permission broker, user identity and resource manager. System integration does not grant the assistant unrestricted administrative authority.
+- Privileged system operations remain explicitly brokered; a user-level assistant service is the default, with privileged system components limited to narrowly defined OS integration needs.
+- The distribution must not require telemetry or mandatory cloud services.
+- Hardware-specific optimisations must not make the distribution unusable on ordinary supported hardware.
+
+### Not decided
+
+Distribution name and branding, exact CachyOS components to adopt or replace, repository and build infrastructure, package promotion/testing policy, desktop-shell modifications, kernel variants, installer configuration, filesystem/partitioning defaults, Secure Boot implementation, hardware profiles, recovery tooling, update/rollback mechanics and release support policy remain subject to further research and implementation design.
