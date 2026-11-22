@@ -61,9 +61,15 @@ The user approved the recommended directions for both intelligence/orchestration
 
 See ADR-011 and ADR-012 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Sections 30–31.
 
-## Next research topic
+## Recently approved architecture domains — 22 November 2026
 
-The next architecture-research domains will be selected after reviewing the remaining masterplan requirements and research coverage. The approved intelligence and memory directions do not select concrete models, databases, embedding systems, retrieval algorithms or implementation libraries.
+The user approved the recommended directions for automation/workflows, the plugin ecosystem, and synchronization/backup/portability.
+
+- **Automation:** event-driven durable workflows with explicit ownership, bounded execution, approval checkpoints, safe retries and resource-aware scheduling.
+- **Plugins/integrations:** open community ecosystem with manifests, publisher/provenance verification, signatures, isolated workers, scoped credentials and mandatory broker enforcement.
+- **Sync/portability:** local-first optional managed or self-hosted sync; end-to-end encryption for private data; controlled workspace key boundaries; separate encrypted backups and portable export/import; safe conflict handling.
+
+See ADR-013 through ADR-015 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Sections 32–34.
 
 ## Deferred / undecided
 
@@ -169,3 +175,40 @@ Approved:
 Deferred implementation details:
 - Memory schemas, database/vector/index technology, embeddings, reranking and retrieval algorithms.
 - Conflict resolution, retention/deletion guarantees, project watchers and review interface.
+
+
+
+## Phase 5 — Automation and plugin ecosystem
+
+**Status:** Complete — architecture directions approved on 22 November 2026.
+
+Approved:
+- Event-driven durable workflows integrated with the central orchestrator, resource manager and permission broker.
+- Explicit ownership and user/workspace scope for automations; background jobs retain initiating authorization context.
+- Bounded execution, approval checkpoints, pause/cancellation, audit history and safe retry/deduplication safeguards.
+- Open community plugin ecosystem with manifests, publisher/provenance verification, signatures and clear trust levels.
+- Isolated plugin workers with OS-enforced restrictions; every privileged operation remains brokered.
+- Scoped integration credentials; updates re-evaluate material permission changes; uninstall revokes grants/credentials and removes scheduled/event hooks.
+- Common internal tool contract with MCP adapters, not MCP-only architecture.
+
+Deferred implementation details:
+- Workflow format, scheduler, event transport, persistence schema and automation UI.
+- Plugin manifest/SDK, registry governance, package/signing infrastructure, sandbox technology, compatibility and moderation operations.
+
+## Phase 6 — Synchronization, backup and portability
+
+**Status:** Complete — architecture directions approved on 22 November 2026.
+
+Approved:
+- Local-first operation with optional synchronization.
+- Both managed and self-hosted sync deployments.
+- End-to-end encryption for private synchronized data, with separate controlled key boundaries for shared workspace data.
+- Device enrollment/revocation and documented key/device recovery.
+- Safe automatic merging where reliable; preserve versions and surface meaningful conflicts.
+- Separate encrypted, versioned backup/recovery and user-readable export/import capabilities.
+- Multiple backup destinations, integrity verification and regular restore testing.
+- Documented versioned portable formats; imported plugins and executable automations remain inactive until reviewed and authorized.
+
+Deferred implementation details:
+- Sync protocol, managed-service operations, cryptographic and key-recovery protocols.
+- Backup formats, retention periods, export schemas, migration tooling, conflict-resolution algorithms and deletion guarantees.
