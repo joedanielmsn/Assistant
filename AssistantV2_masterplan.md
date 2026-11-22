@@ -1720,3 +1720,65 @@ ADR-023 records the remaining user decisions from the final architecture questio
 This approval does not close detailed design. The next consolidation pass must still specify and validate cryptographic key derivation/storage/recovery, secure unlock and unattended-start behaviour, database isolation and encryption, threat models and sandbox enforcement, data deletion/retention guarantees, self-hosted sync protocol and conflict handling, cloud disclosure controls, GPU/runtime compatibility, plugin registry/signing governance, installer and conventional rolling-update recovery, and the project-wide licence/dependency audit.
 
 See ADR-023 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+## 43. Security, encryption and data-isolation architecture — 22 November 2026
+
+ADR-024 and ADR-025 turn the approved security and privacy direction into enforceable design requirements.
+
+### Threat model and isolation
+- Maintain a documented threat model covering malicious plugins/workers, prompt injection, compromised clients/credentials/update channels, cross-user/workspace leakage, denial of service and supply-chain compromise.
+- Apply OWASP ASVS 5.0 as a verification reference for applicable APIs and services.
+- Linux native workers use layered Bubblewrap namespaces/mount restrictions, Landlock filesystem/network controls where available, seccomp syscall filtering, dropped capabilities, no-new-privileges and resource limits.
+- Windows workers use AppContainer and explicit capabilities/ACLs where compatible, plus process/resource lifecycle controls.
+- Wasmtime plugins receive no ambient host capabilities; filesystem, network and host APIs are explicitly granted and bounded.
+- Missing mandatory isolation fails closed for untrusted plugins. Process separation alone is never treated as a sandbox.
+- Security tests cover negative access cases, IPC/parser fuzzing, worker failures, resource exhaustion, broker bypass and cross-tenant isolation.
+
+### Encryption and key management
+- Use envelope encryption with random data-encryption keys, authenticated encryption and versioned key metadata.
+- Argon2id protects the master-password key-wrapping path; RFC 9106's memory-constrained profile is the initial compatibility baseline, to be benchmarked and increased where practical.
+- A separate high-entropy recovery key can restore the user's root key hierarchy. Losing both master password and recovery key means encrypted data cannot be recovered.
+- Keys are held only in protected core memory while unlocked; never expose root keys to models, workers or plugins.
+- Require master-password unlock after fresh OS login by default. Optional OS-vault convenience unlock is opt-in and explicitly delegates trust to the OS account.
+- SQLite personal storage uses full database encryption (SQLCipher or equivalent, after FTS5/build validation); attachments are encrypted separately.
+- PostgreSQL shared-server storage uses application authorization, RLS as defence in depth, scoped application-layer encryption keys and encrypted storage/backups.
+- User-private and workspace keys remain separate; indexes, caches, embeddings, summaries and temporary files are treated as sensitive derived data.
+
+### Important operational constraint
+The permission broker and data-key access are separate controls. A valid tool permission does not automatically unlock private data; possession of a recovery key does not grant another user's identity or workspace membership.
+
+See ADR-024 and ADR-025 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+## 44. Synchronization, hardware, updates and plugin governance — 22 November 2026
+
+### Self-hosted synchronization
+- ADR-026 supersedes the managed-sync-service option in ADR-015: the approved product direction is self-hosted synchronization only.
+- Private payloads remain end-to-end encrypted; sync servers relay/store ciphertext and limited delivery metadata.
+- Device enrollment/revocation, user-private and workspace key boundaries, safe merge rules and explicit conflict resolution are mandatory.
+- Revocation cannot erase plaintext or keys already copied to a previously authorized/offline device; this limitation must be explained.
+- Synchronization is replication, not backup.
+
+### Hardware and inference
+- CPU inference remains the fallback; GPU acceleration is detected and validated per OS, driver, backend and device.
+- NVIDIA receives first validation priority; AMD and Intel remain support goals.
+- Initial backend matrix: llama.cpp CPU and NVIDIA CUDA, with AMD HIP/Vulkan and Intel SYCL/Vulkan validation where supported; ONNX Runtime CPU, CUDA and Intel OpenVINO, with Windows provider selection based on current support.
+- Hybrid-graphics routing, partial offload, VRAM accounting, sleep/resume, Gaming Mode contention and CPU fallback are tested.
+- The RTX 3050 4 GB development system is a constrained test target, not a minimum GPU requirement.
+
+### Conventional rolling updates and recovery
+- ADR-028 clarifies ADR-016: use conventional curated rolling package updates, not image-based atomic updates.
+- Retain testing/stable promotion, signed package verification and preflight checks.
+- Btrfs installations receive tested pre-update snapshots and recovery entries; ext4 installations receive package-cache downgrade and backup/recovery procedures.
+- Snapshot recovery is not claimed to roll back EFI/boot state, firmware, external data or every database automatically.
+- TUF or compatible secure update metadata is used for application/plugin registry artifacts where appropriate; OS package signing remains a separate trust system.
+- Preserve SBOMs and traceable build provenance.
+
+### Plugin and licensing governance
+- Plugin signatures prove publisher/integrity provenance, not safety.
+- Require manifests, requested-capability disclosure, signature/digest verification, isolation, brokered host calls and renewed review for material permission changes.
+- Support official and independent registries without bypassing trust or sandbox checks.
+- Maintain SPDX licence metadata and release SBOMs; review transitive code dependencies, Qt/native libraries, model weights, datasets, fonts, icons, firmware and distribution components separately.
+- Core licensing remains deferred pending project-wide compatibility, contributor, patent, distribution and legal review.
+
+See ADR-026 through ADR-029 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
