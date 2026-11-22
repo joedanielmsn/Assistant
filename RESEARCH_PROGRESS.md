@@ -455,3 +455,25 @@ Remaining before Phase 8 sign-off:
 - Complete independent security review and project-wide licensing audit.
 
 No implementation has started. These decisions establish design defaults; platform and distribution validation remains a prerequisite to implementation milestones.
+
+
+### Additional implementation architecture refinements — ADR-032 and ADR-033
+
+Recorded 22 November 2026:
+- Use rusqlite with bundled SQLCipher and FTS5 for personal desktop databases; run synchronous work on a bounded blocking pool.
+- Use SQLx PostgreSQL for shared-server persistence; do not enable SQLx SQLite in the same binary by default.
+- Test the exact SQLCipher build and FTS5 configuration on both Linux and Windows.
+- GRUB is the initial Linux distribution bootloader default, selected for broad compatibility and Btrfs snapshot boot integration.
+- Secure Boot must retain signature verification/lockdown; prefer signed shim/MOK or another reviewed chain preserving existing firmware keys. Exact signing/enrollment remains a prototype validation task.
+
+Research references:
+- rusqlite SQLCipher feature documentation: https://docs.rs/rusqlite/latest/rusqlite/
+- SQLx SQLite driver documentation: https://docs.rs/sqlx/latest/sqlx/sqlite/
+- GNU GRUB Secure Boot manual: https://www.gnu.org/software/grub/manual/grub/grub.html
+- Arch Secure Boot guidance: https://wiki.archlinux.org/title/Secure_Boot
+- GRUB Btrfs snapshot integration: https://man.archlinux.org/man/grub-btrfs.8.en
+
+Remaining:
+- Verify Cargo feature unification and native library linkage in the real workspace.
+- Validate SQLCipher FTS5, backup/restore and WAL across platforms.
+- Prototype GRUB snapshot boot and Secure Boot end-to-end, including kernel and module updates.
