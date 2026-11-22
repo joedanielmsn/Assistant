@@ -1,11 +1,11 @@
 # Local Assistant 2.0 — Implementation Roadmap
 
-**Status:** Proposed execution plan based on approved architecture ADR-001 through ADR-035  
+**Status:** Active execution plan based on approved architecture ADR-001 through ADR-035  
 **Date:** 2026-11-22  
-**Implementation status:** Not started  
+**Implementation status:** Phase 1 secure local core prototype started; see [Phase 1 specification](../phase-1/PHASE_1_SECURE_CORE_SPEC.md) and [Phase 0 transition review](../phase-0/EXIT_REVIEW.md).  
 **Source of truth:** `ARCHITECTURE_DECISIONS.md` and `AssistantV2_masterplan.md`
 
-This roadmap sequences implementation so that identity, authorization, privacy and resource controls exist before agents, plugins or desktop automation can use them. It is a delivery plan, not authorization to begin coding.
+This roadmap sequences implementation so that identity, authorization, privacy and resource controls exist before agents, plugins or desktop automation can use them. Phase 1 has been authorized through the documented Phase 0 transition review; each later milestone remains subject to its security and acceptance gates.
 
 ## Delivery principles
 
