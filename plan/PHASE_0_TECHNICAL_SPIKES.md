@@ -1,6 +1,6 @@
 # Local Assistant 2.0 — Phase 0 Technical Spike Plan
 
-**Status:** In progress; SP-01 Linux prototype checks passed, cross-platform and remaining acceptance checks outstanding  
+**Status:** Transitioned to Phase 1 with deferred acceptance items; see [consolidated Phase 0 results](../phase-0/SPIKE_RESULTS.md) and [exit review](../phase-0/EXIT_REVIEW.md).  
 **Date:** 2026-11-22  
 **Purpose:** Resolve high-risk compatibility and security assumptions before production implementation.  
 **Rule:** A spike is disposable validation code, not a production feature. Record environment, versions, commands, results, limitations and reproducibility instructions.
@@ -402,9 +402,11 @@ The integrated Rust/Tokio harness launched Python workers with stdin/stdout/stde
 - [x] Per-process file-descriptor and file-size limits are enforced.
 - [x] Delegated cgroup child creation and CPU/memory/PID controller propagation work without root.
 - [x] CPU quota throttling, PID ceiling and memory.high pressure events were observed.
-- [ ] Explicit network-connectivity denial and broader host-socket/D-Bus exposure tests.
+- [x] Loopback host-listener denial from a Bubblewrap worker in an unshared network namespace demonstrated (2026-11-22); this does not prove all outbound network or socket exposure paths.
+- [ ] Broader outbound network and host-socket/D-Bus exposure tests.
 - [ ] Broader filesystem/process escape and adversarial syscall coverage.
 - [ ] Deliberate `memory.max` hard-limit/OOM behaviour and recovery validation.
+- [x] Disposable process-group test terminated a worker and its child process (2026-11-22); this does not prove cgroup descendant cleanup.
 - [ ] Worker termination, descendant cleanup and supervisor restart integration in the production worker manager.
 - [ ] Reviewed production seccomp profiles and per-worker Landlock policies.
 - [ ] Fail-closed behavior when a required sandbox primitive is unavailable.
@@ -416,6 +418,8 @@ The integrated Rust/Tokio harness launched Python workers with stdin/stdout/stde
 - Landlock and seccomp rules were deliberately small proof-of-enforcement policies. They are not approved production allowlists.
 - The integrated run verified cgroup limits were configured for its worker. Actual CPU, memory-pressure and PID enforcement were demonstrated in a separate disposable cgroup test.
 - The `memory.high` event proves reclaim/throttling pressure was triggered; it is not evidence that the `memory.max` hard ceiling or OOM recovery behavior was tested.
+- A follow-up loopback test verified that a host listener reachable from the host was unreachable from a Python worker launched with Bubblewrap `--unshare-net`; broader outbound/socket exposure was not tested.
+- A disposable process-group test terminated both a worker and its child; production cgroup cleanup/restart lifecycle and adversarial escape tests remain outstanding.
 - No production cleanup/restart lifecycle or adversarial escape test was performed.
 - Windows has not yet been tested, consistent with the Linux-first execution order.
 
