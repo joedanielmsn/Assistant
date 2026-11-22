@@ -20,6 +20,8 @@
 | Resource management and scheduling | Approved | Hybrid fixed safety limits plus adaptive priority scheduling; Normal/Performance/Gaming/Battery-Quiet modes; pressure-aware model unloading with configurable idle timeouts; weighted fair per-user scheduling and concurrency limits |
 | Computer interaction and tool execution | Approved | Layered strategy: native APIs, accessibility, semantic browser automation, then visual interaction; common internal tool interface with MCP adapters; broad host access still brokered per operation; separate assistant browser profile; operation-level undo and checkpoints |
 | Desktop experience and awareness | Approved | One primary desktop app with optional dashboard/tray/notifications/companion; continuous screen awareness with persistent indicators, immediate pause/disable, exclusions, transient processing by default and explicit permission for retention/cloud sharing; push-to-talk default with optional wake word |
+| Intelligence and orchestration | Approved | Central stateful orchestrator with bounded adaptive execution; sequential default, selective parallelism, structured specialist contracts, deterministic enforcement, verified outcomes and safe recovery |
+| Memory and knowledge | Approved | Layered scope-aware memory; review-based persistent memory writes; user-selected project monitoring; authorization-aware retrieval, provenance and governed lifecycle |
 
 
 ## Additional approved architecture areas — 22 November 2026
@@ -50,11 +52,18 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 | Process/security boundaries | Main core for orchestration and policy; separate workers only where lifecycle, isolation, failure-containment or specialised-runtime needs justify them | Direction approved; exact topology and sandboxing remain open |
 | Data storage isolation | Hybrid strategy based on sensitivity and operational requirements | Direction approved; concrete implementation undecided |
 
+## Recently approved architecture domains — 22 November 2026
+
+The user approved the recommended directions for both intelligence/orchestration and memory/knowledge.
+
+- **Intelligence/orchestration:** bounded adaptive central orchestration; sequential execution by default; selective parallelism; structured specialist contracts; deterministic validation and permission enforcement; task checkpoints, safe retries and outcome verification.
+- **Memory/knowledge:** layered working, episodic, semantic and procedural memory plus separate knowledge repositories; review-based persistent memory writes; user-selected project monitoring; provenance and temporal validity; authorization-aware retrieval and propagation of updates/deletion.
+
+See ADR-011 and ADR-012 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Masterplan Sections 30–31.
+
 ## Next research topic
 
-**Intelligence architecture**
-
-Research the central orchestrator, specialist invocation, model routing, context construction, tool selection, bounded parallelism and reliable task execution. Preserve the approved resource manager and permission-broker boundaries. Routine implementation defaults will be selected autonomously; only consequential product or performance trade-offs will be brought to the user.
+The next architecture-research domains will be selected after reviewing the remaining masterplan requirements and research coverage. The approved intelligence and memory directions do not select concrete models, databases, embedding systems, retrieval algorithms or implementation libraries.
 
 ## Deferred / undecided
 
@@ -128,6 +137,35 @@ Deferred implementation details:
 - Power/thermal policies and concrete Linux/Windows APIs.
 - Hardware-specific performance validation.
 
-## Next phase
+## Phase 3 — Intelligence and orchestration architecture
 
-**Phase 3 — Intelligence architecture.** Research the central orchestrator, specialist invocation, model routing, context construction, tool selection, bounded parallelism and reliable task execution. Bring only major product/design/performance trade-offs to the user at the end of the phase.
+**Status:** Complete — architecture direction approved on 22 November 2026.
+
+Approved:
+- Central, stateful orchestrator with bounded adaptive execution and explicit step/time/token/resource limits.
+- Sequential execution by default; selective parallelism for independent work.
+- Structured specialist contracts with scoped context and structured results.
+- Deterministic validation, authorization and permission-broker enforcement; models are not security authorities.
+- Resource- and policy-aware model routing.
+- Durable task state/checkpoints, safe retries, cancellation, worker-failure isolation and outcome verification.
+
+Deferred implementation details:
+- Model-routing algorithms, planner implementation, task-state schema and retry/idempotency mechanisms.
+- Specialist taxonomy, evaluation datasets/benchmarks, model/runtime choices and orchestration libraries.
+
+## Phase 4 — Memory and knowledge architecture
+
+**Status:** Complete — architecture direction approved on 22 November 2026.
+
+Approved:
+- Separate working, episodic, semantic and procedural memory layers from source knowledge repositories.
+- Review-based approval before persistent memory writes by default.
+- User-selected project locations for indexing and monitoring; no silent expansion of monitoring scope.
+- Provenance, confidence, timestamps and temporal validity; reconcile or version conflicting facts.
+- Authorization-aware retrieval before content reaches models, with strict user/workspace isolation.
+- Original documents remain authoritative; indexes/embeddings/summaries are derived and rebuildable.
+- Governed update, revocation and deletion propagation; bounded task-specific context.
+
+Deferred implementation details:
+- Memory schemas, database/vector/index technology, embeddings, reranking and retrieval algorithms.
+- Conflict resolution, retention/deletion guarantees, project watchers and review interface.
