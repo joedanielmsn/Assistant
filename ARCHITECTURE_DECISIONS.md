@@ -437,7 +437,7 @@ Concrete memory schemas, database and vector/index technologies, embedding and r
 
 
 
-## ADR--013 — Event-driven automation and governed workflows
+## ADR-013 — Event-driven automation and governed workflows
 
 **Status:** Approved  
 **Date:** 2026-11-22
