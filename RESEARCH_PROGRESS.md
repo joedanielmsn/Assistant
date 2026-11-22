@@ -259,3 +259,9 @@ Review areas:
 
 Technology selection remains open; implementation has not started.
 
+
+### Additional approved platform constraint — 22 November 2026
+
+- **CPU baseline:** x86-64-v3 is the minimum instruction-set baseline for official builds and supported systems. x86-64-v4 remains optional for compatible processors; older x86-64 CPUs without v3 are outside initial support (ADR-019).
+
+The cross-cutting hardware review continues with GPU, hybrid-graphics, laptop, power-management and gaming compatibility. Technology selection and implementation planning remain open.
