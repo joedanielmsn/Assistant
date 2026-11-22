@@ -166,6 +166,10 @@ No untrusted worker is launched until:
 - Timeout/cancellation semantics prevent blind repetition of uncertain non-idempotent operations.
 - The worker protocol has bounded framing and explicit compatibility rules.
 
-## 10. Change control
+## 10. Initial repository implementation
+
+The initial implementation bootstrap is in `core/assistantd/` with a root Cargo workspace. It currently provides a Linux-only daemon/client prototype, bounded JSON-line IPC, OS-derived peer UID, a minimal deny-by-default operation allowlist, and health/status handlers. It is an early implementation baseline, not yet validated by a local CachyOS build. The repository does not yet contain a generated `Cargo.lock`; generate it and commit it after the first successful local dependency resolution and build.
+
+## 11. Change control
 
 This specification implements existing approved architecture directions. Any change that weakens privacy, identity provenance, deny-by-default authorization, broker mediation or sandbox fail-closed behavior requires explicit owner approval and a new decision record. Routine module naming and implementation details may be selected by the implementer if they preserve these requirements.
