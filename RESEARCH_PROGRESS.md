@@ -265,3 +265,33 @@ Technology selection remains open; implementation has not started.
 - **CPU baseline:** x86-64-v3 is the minimum instruction-set baseline for official builds and supported systems. x86-64-v4 remains optional for compatible processors; older x86-64 CPUs without v3 are outside initial support (ADR-019).
 
 The cross-cutting hardware review continues with GPU, hybrid-graphics, laptop, power-management and gaming compatibility. Technology selection and implementation planning remain open.
+
+
+## Phase 8 — Architecture consolidation and technology selection
+
+**Status:** In progress.
+
+Completed cross-cutting decisions:
+- Privileged system operations use the central permission broker as the authoritative authorization layer; narrowly scoped OS helpers and OS-enforced least-privilege controls remain mandatory (ADR-017).
+- Initial supported CPU architecture is x86-64 only (ADR-018).
+- Minimum CPU instruction-set baseline is x86-64-v3; x86-64-v4 remains optional (ADR-019).
+- Primary desktop application framework is Qt 6 + QML (ADR-020).
+
+Technology candidates under evaluation; not yet approved as a complete stack:
+- Rust + Tokio for the authoritative core.
+- Python for AI and specialist workers.
+- llama.cpp for local LLM inference.
+- ONNX Runtime for specialized inference.
+- SQLite for personal desktop persistence and PostgreSQL for shared-server persistence.
+- SQLite FTS5 for initial local full-text search.
+- Versioned HTTP-compatible API and WebSockets.
+- Internal typed event system and durable database-backed workflows initially.
+
+Remaining consolidation work:
+- Validate complete technology combinations and platform support.
+- Evaluate sandboxing, plugin execution, build/release infrastructure and deployment packaging.
+- Complete hardware compatibility and performance constraints.
+- Resolve data/storage, cryptography, sync and workflow implementation dependencies.
+- Revisit licensing before architecture finalisation and again before public release.
+
+No implementation stack has been approved as a whole, and implementation has not started.
