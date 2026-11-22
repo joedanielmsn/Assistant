@@ -132,6 +132,56 @@ The concrete policy engine, permission storage format, authentication/session te
 ---
 ---
 
+## ADR-005 — Modular core with selectively isolated workers
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use a **modular core with selectively isolated processes**, rather than a monolithic single process or a broad microservices architecture.
+
+The main core owns orchestration, authorization, resource policy and shared platform state. Components remain modules in the core unless a concrete isolation or lifecycle requirement justifies a process boundary.
+
+A component should become a separate process when one or more of these conditions apply:
+
+1. It needs an independent lifecycle or resource-management boundary.
+2. It handles untrusted code or sensitive operations that require stronger isolation.
+3. Its failure must not be allowed to crash or destabilize the main core.
+4. It requires a specialised runtime, hardware access or dependency environment.
+
+Otherwise, keep it inside the core as a module. Process separation alone is not a security sandbox; untrusted workers require actual OS-enforced restrictions and controlled interfaces.
+
+### Initial boundary direction
+
+The following is an initial architectural baseline, not an irrevocable process-by-process commitment:
+
+| Component | Initial direction |
+|---|---|
+| Main orchestrator | Main core |
+| Permission broker | Main core |
+| Resource manager | Main core |
+| Memory and knowledge | Main core initially |
+| Event system | Main core initially |
+| Desktop UI | Separate client process |
+| Inference runtime | Independent process |
+| Specialist agents | On-demand, bounded worker pool |
+| Plugins | Restricted isolated processes |
+| Browser/desktop automation | Isolated workers |
+| Voice processing | On-demand worker |
+
+### Operational constraints
+
+- A worker failure must not bring down the main core; workers should be restartable where appropriate.
+- Specialist workers should be on-demand and bounded, not permanently spawned without need.
+- Share inference runtimes where practical; avoid duplicating large model instances unnecessarily.
+- Worker execution remains subject to the central permission broker and resource manager.
+- Process boundaries, sandbox strength and lifecycle may be refined as concrete workloads and platform constraints are researched.
+
+### Not decided
+
+Exact process topology, worker protocol, IPC transport, sandbox technologies, service managers, restart policy and platform-specific implementation remain undecided.
+
 ## Decision status rules
 
 - **Approved:** explicitly confirmed by the user.
