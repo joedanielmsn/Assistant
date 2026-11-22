@@ -241,3 +241,21 @@ See ADR-016 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) and Mast
 ## Architecture discovery status
 
 The six assistant-platform architecture domains and the AI-powered Linux distribution direction have now been researched and approved at the architectural level. The next stage is architecture consolidation and cross-cutting review before implementation planning. No implementation technology stack has been finalised.
+
+## Architecture consolidation — in progress
+
+Cross-cutting review is underway before implementation planning.
+
+Newly approved:
+- Privileged OS operations use the central permission broker as the authoritative authorization layer; no second interactive OS authorization prompt is required for every operation. Narrow OS helpers and OS-enforced least-privilege controls remain mandatory (ADR-017).
+- Initial supported hardware architecture is x86-64 (AMD64) only. ARM64 and other architectures are outside the initial support commitment (ADR-018).
+
+Review areas:
+- Security boundaries and privileged OS integration.
+- CPU/GPU and device compatibility, including laptops and gaming systems.
+- Deployment, packaging, updates, rollback and release engineering.
+- Linux/Windows consistency and the AI distribution's relationship to the shared platform.
+- Technology-stack evaluation against the approved architecture.
+
+Technology selection remains open; implementation has not started.
+
