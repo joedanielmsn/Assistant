@@ -56,5 +56,7 @@ Define how desktop and other clients authenticate to the authoritative core, how
 3. Keep approved decisions separate from proposals and deferred choices.
 4. Inspect existing repository files before changing them.
 5. Preserve established requirements when updating the master plan.
-6. Ask for explicit approval at decision checkpoints.
+6. Use an autonomy-first decision process: the assistant should choose sound defaults for routine implementation, security and management details, and document the rationale without asking for approval of every detail.
+7. Ask the user only about consequential product/design choices, significant performance trade-offs, or decisions with multiple genuinely comparable options. Explain these briefly and present clear choices.
+8. Never treat a consequential user-facing or product-direction choice as approved without the user's input.
 7. Keep the GitHub repository as the project documentation source of truth.
