@@ -754,3 +754,76 @@ Begin with an internal typed event system and a database-backed durable workflow
 ### Not decided
 
 Exact crate and package versions, Rust/Python API schemas, Python environment distribution, process launch/supervision details, IPC framing, inference model catalogue, GPU execution-provider matrix, database schemas and migrations, encryption/key management, plugin component ABI/manifest, sandbox profiles, workflow schema, build system, packaging, update/rollback implementation and licensing.
+
+## ADR-022 — Build, repository, packaging and release architecture
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use a coordinated platform monorepo and a separate repository for the AI-first Linux distribution. The platform and distribution share compatible components and interfaces but retain independent release schedules and validation pipelines.
+
+### Repository boundaries
+
+**Platform monorepo** contains:
+- Rust core and shared Rust libraries.
+- Qt 6/QML desktop application.
+- Python AI and specialist workers.
+- Official plugins, plugin SDK and shared tool interfaces.
+- Platform packaging, developer tooling and release scripts.
+- Platform architecture and developer documentation.
+
+**Separate Linux distribution repository** contains:
+- CachyOS-derived image and installer configuration.
+- Distribution-specific kernel and desktop customizations.
+- Distribution package definitions and integration configuration.
+- Distribution repository, signing, testing-channel and release-channel configuration.
+
+The distribution may consume versioned platform packages or release artifacts. It must not require platform and OS releases to happen simultaneously.
+
+### Coordinated component build systems
+
+| Component | Initial build direction |
+|---|---|
+| Rust core and Rust tools | Cargo workspace |
+| Qt 6/QML desktop | CMake with Ninja as the initial build executor |
+| Python workers | uv-managed, locked and reproducible environments |
+| Linux distribution | Arch/CachyOS-compatible package build tooling and PKGBUILDs |
+| Windows desktop distribution | Qt deployment tooling and a maintained Windows installer/package process |
+
+Use component-appropriate tools rather than forcing the entire project through one build system. Pin toolchain and dependency versions and maintain reproducible build inputs where practical.
+
+### CI and release validation
+
+Use GitHub Actions as the initial CI/CD platform, with workflows that support:
+- Fast pull-request checks: formatting, static analysis, unit tests and interface/schema validation.
+- Linux and Windows build/test matrices.
+- Integration tests for core, desktop and worker communication.
+- Separate hardware-dependent inference validation; ordinary CI must not require a GPU.
+- Reviewed, tagged release builds with retained artifacts, test reports and diagnostic logs.
+- Independent distribution build, promotion and release workflows.
+
+Hardware-specific GPU tests run on controlled compatible machines and cover the supported CPU/GPU/driver combinations. CI success alone is not evidence of hardware acceleration or sandbox strength.
+
+### Packaging and updates
+
+- Linux desktop and core components should use native packages as the primary integration path, with additional universal formats considered only when they provide a clear distribution benefit.
+- The Linux distribution maintains its own signed package repositories and controlled testing/stable promotion process. Package signature verification must remain enabled and use trusted signing keys.
+- Windows deployment packages the Qt application and required runtime dependencies, while managing the core and Python workers as separately versioned components where practical.
+- Python worker environments are pinned and isolated; do not depend on arbitrary user-installed Python packages.
+- Platform and distribution updates must support compatibility checks, staged rollout, failure reporting and a documented recovery/rollback strategy.
+- Build artifacts must be traceable to reviewed source revisions and dependency/toolchain inputs.
+
+### Constraints
+
+- One platform source tree does not imply one binary, one installer or one release cadence.
+- The Linux distribution is independently tested and maintained; upstream CachyOS changes are not automatically promoted.
+- Linux and Windows remain first-class platform targets, subject to their respective integration and validation requirements.
+- Build, package and update mechanisms must preserve the permission-broker, worker-isolation and data-ownership boundaries.
+- Do not weaken package-signature verification to simplify development or installation.
+- This decision establishes the initial direction; exact workflow definitions, package formats, signing infrastructure and release policies remain detailed design work.
+
+### Not decided
+
+Exact monorepo directory layout, branch/review policy, CMake/Ninja versions, Cargo toolchain policy, Python worker distribution format, GitHub Actions runner strategy, artifact retention, release versioning, package names and dependencies, Windows installer technology, Linux package promotion mechanics, signing-key custody/rotation, update/rollback implementation and support policy.
