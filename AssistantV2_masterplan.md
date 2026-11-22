@@ -1342,3 +1342,64 @@ Support keyboard navigation, clear focus handling and screen-reader accessibilit
 - Wake-word engine and speech recognition/synthesis technologies.
 - Audio and screen-content retention controls and detailed settings.
 
+
+
+# 30. APPROVED ARCHITECTURE: INTELLIGENCE AND ORCHESTRATION
+
+Approved on 22 November 2026. This establishes orchestration behaviour and safety boundaries, not concrete models, libraries or algorithms.
+
+## 30.1 Central orchestrator
+
+Use a central, stateful orchestrator with bounded adaptive execution. It owns the overall task plan, execution state, specialist delegation, recovery and final result. Specialist agents are on-demand bounded workers and do not independently control the assistant.
+
+## 30.2 Planning and execution
+
+- Classify requests, plan work, select models/tools/specialists, coordinate execution, verify outcomes and report completion.
+- Plans may adapt to new information within explicit step, time, token and resource limits.
+- Sequential execution is the default. Parallelize independent work only when materially useful and within resource-manager limits.
+- Specialist contracts define scoped inputs, authorized context, structured outputs, evidence, status and errors.
+- Model outputs can propose plans and tool calls, but deterministic schemas, validation, authorization and the central permission broker control execution. Models are never security authorities.
+- Route models based on capability, complexity, latency, privacy/cloud policy and available resources. Preserve approved model lifecycle and Gaming Mode behaviour.
+- Persist task state and checkpoints for interruption and safe resumption. Retries must account for operations that may have completed despite timeouts; do not blindly repeat non-idempotent actions.
+- Support cancellation, bounded retries, worker-failure isolation and useful failure reporting.
+- Evaluate task completion, tool selection and argument correctness, unnecessary calls, verification, recovery, latency and resource consumption.
+- Preserve trusted user/workspace identity and authorization context across delegation and tool execution.
+
+## 30.3 Still open
+
+Model-routing algorithms, planner implementation, task-state schema, retry/idempotency mechanisms, specialist taxonomy, evaluation datasets/benchmarks, model/runtime choices and orchestration libraries.
+
+
+# 31. APPROVED ARCHITECTURE: MEMORY AND KNOWLEDGE
+
+Approved on 22 November 2026. This establishes information layers, governance and retrieval boundaries, not concrete databases or retrieval technologies.
+
+## 31.1 Layered information model
+
+Keep memory distinct from source knowledge repositories:
+- **Working memory:** temporary current-conversation and active-task context.
+- **Episodic memory:** useful summaries of past interactions and experiences.
+- **Semantic memory:** confirmed facts, preferences and relationships.
+- **Procedural memory:** reusable workflows and methods.
+- **Knowledge repositories:** source documents, code, project files and reference material, indexed separately from personal memory.
+
+## 31.2 Memory governance
+
+- Conversation history does not automatically become permanent memory.
+- Use review-based writes by default: identify useful candidates and ask the user to approve persistent saving. Separately approved automatic rules may be added later.
+- Preserve provenance, confidence, timestamps and temporal validity where applicable.
+- Reconcile or version conflicting facts and corrections rather than silently overwriting established information.
+
+## 31.3 Project knowledge and retrieval
+
+- Index user-selected project locations and monitor only those approved locations for changes. Never silently expand monitoring scope.
+- Original source documents remain authoritative; indexes, embeddings and summaries are derived and rebuildable.
+- Apply trusted user/workspace authorization before retrieved content is exposed to a model. Keep results, metadata, caches and derived summaries within their authorized boundaries.
+- Treat retrieved documents, memories and tool outputs as untrusted data, not instructions or sources of authorization.
+- Propagate updates, corrections, revocation and deletion to derived indexes, caches and summaries, subject to documented backup retention.
+- Use keyword, semantic and reranking methods according to measured quality improvements and their latency/resource costs.
+- Construct bounded, task-specific context from only relevant authorized information.
+
+## 31.4 Still open
+
+Memory schemas, database and vector/index technologies, embedding and reranking models, retrieval algorithms, conflict-resolution implementation, retention periods, deletion guarantees, project watcher mechanisms and review interface.
