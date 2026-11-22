@@ -1191,3 +1191,102 @@ References: [SPDX licence list](https://spdx.org/licenses/), [Apache licence com
 ### Not decided
 
 Core licence, contributor agreement/CLA policy, plugin SDK licence, official model catalogue licence policy, trademark policy, registry moderation rules and exact SBOM tooling remain deferred until the project-wide review.
+
+
+## ADR-030 — Core service lifecycle, API contracts and desktop integration
+
+**Status:** Approved initial implementation direction  
+**Date:** 2026-11-22
+
+### Core service lifecycle
+
+- Linux personal desktop: run the authoritative core as a per-user systemd user service, with explicit user-controlled startup/stop behaviour.
+- Linux headless server: run the core as a dedicated unprivileged system service account under systemd; privileged OS operations remain delegated to the narrow helper.
+- Windows personal desktop: run the core as a per-user background process started at login and supervised by the desktop installation. Do not run the ordinary core or model workers as an elevated Windows service.
+- Standalone desktop profile may start/stop the same core with the UI lifecycle.
+- UI closure does not stop a persistent desktop core; explicit stop/quit and background-task policy govern shutdown.
+- Inference and specialist workers remain supervised child processes with independent lifecycle and bounded restart policies.
+
+### API and contract architecture
+
+- Use Axum on Tokio as the initial Rust HTTP/API framework, with Tower middleware for cross-cutting request controls.
+- Publish a versioned OpenAPI 3.1 description for the client-facing HTTP API; use JSON Schema-compatible versioned contracts for worker messages and plugin manifests.
+- Use explicit major API versioning and a compatibility/deprecation policy. Streaming/WebSocket subprotocols are versioned independently.
+- HTTP-compatible request/response operations and WebSockets remain the public client contract. Keep the API independent of desktop UI internals and database schema.
+- The API authenticates each client session and authorizes every operation using trusted identity/workspace context. A local connection is not trusted solely because it originates on the same machine.
+- Remote access is disabled by default and remains subject to the existing VPN/tunnel and authentication direction. Do not expose an unauthenticated network listener.
+
+### Local IPC and worker protocol
+
+- Linux local client transport uses per-user Unix domain sockets with restrictive permissions and peer-identity checks.
+- Windows local client transport uses named pipes with explicit ACLs and client identity checks.
+- Local client sessions use short-lived, revocable scoped credentials after OS peer identity is established.
+- Worker processes use the approved versioned JSON protocol over supervised standard input/output pipes initially. Standard output is protocol-only; standard error is diagnostics-only.
+- Enforce maximum message sizes, framing, schema validation, correlation IDs, deadlines, cancellation and structured errors. Large data uses scoped temporary references, not unbounded inline JSON.
+- Workers receive only the minimum task context and capabilities. A worker protocol message is never an authorization grant.
+
+### Desktop application structure
+
+- Use Qt Quick/QML and Qt Quick Controls for the interface, with a thin C++ application/transport layer.
+- Use Qt Network for HTTP operations and Qt WebSockets for streaming; add platform-specific transport adapters for local IPC.
+- Use modular QML feature areas and typed client-side view models. Keep business rules, authorization, durable state and orchestration in the core.
+- Linux desktop integration such as tray, notifications, portal/screen-capture and KDE-specific features remains behind platform adapters; Windows uses equivalent adapters.
+- Avoid direct database access from the UI and avoid embedding the core through an in-process Rust FFI boundary in the initial architecture.
+- Preserve accessibility, keyboard navigation, screen-reader support and visible awareness/microphone indicators.
+
+### Persistence operational constraints
+
+- SQLite databases remain on a local filesystem, not network shares.
+- SQLite WAL is permitted for same-host concurrent readers/writers; it is not used across network filesystems. Use correct SQLite backup/checkpoint procedures rather than copying a live database file without its WAL state.
+- PostgreSQL is the only initial shared-server database backend.
+- Use SQLx migrations and explicit versioned migration tests for both supported database backends.
+
+References: [Axum](https://github.com/tokio-rs/axum), [Tokio networking](https://docs.rs/tokio/latest/tokio/net/), [Qt Quick](https://doc.qt.io/qt-6/qtquick-index.html), [Qt Quick Controls](https://doc.qt.io/qt-6/qtquickcontrols-index.html), [Qt WebSockets](https://doc.qt.io/qt-6/qtwebsockets-index.html), [SQLite WAL constraints](https://www.sqlite.org/wal.html).
+
+### Not decided
+
+Exact crate versions, API resource names, OpenAPI schema, token format, socket/pipe naming and ACLs, UI module tree, view-model conventions, migration naming and service unit details remain implementation specifications.
+
+## ADR-031 — Linux installer, filesystem and boot security direction
+
+**Status:** Approved initial direction; boot-chain validation required  
+**Date:** 2026-11-22
+
+### Installer
+
+- Use Calamares as the initial distribution installer framework, reusing compatible CachyOS installer knowledge/configuration selectively while maintaining our own branding, configuration and modules.
+- Provide two guided paths: beginner installation with safe defaults and advanced installation with manual partitioning and detailed controls.
+- Beginner mode defaults to UEFI/GPT, Btrfs and a clearly explained automatic partition layout.
+- Offer ext4 as an alternative.
+- Destructive disk operations require an explicit summary and confirmation; identify the selected target disk clearly and warn about data loss.
+- The installer must validate hardware, boot mode, disk layout, available space, network requirements and selected package profile before committing changes.
+- Keep installation logs available locally for user-controlled troubleshooting export; do not upload them automatically.
+
+### Disk encryption
+
+- Offer optional full-system disk encryption using LUKS2 on supported Linux installations, particularly recommended for laptops and portable devices.
+- Disk-encryption credentials are distinct from the assistant's application master password and recovery key.
+- Explain recovery-key/passphrase consequences and provide a recovery procedure before enabling encryption.
+- Do not silently enable, disable or reconfigure existing disk encryption.
+
+### Boot security and Secure Boot
+
+- Secure Boot is a supported target, not a requirement that every user must enable.
+- Preserve an already-enabled Secure Boot configuration; the installer must not silently instruct users to disable it as a routine workaround.
+- Design a verifiable signed boot chain covering the relevant boot manager, kernel and update path. Key enrollment and recovery must be explicit and documented.
+- Test key rotation and kernel/bootloader updates so a normal package update does not leave the machine unable to boot.
+- Do not claim Secure Boot support until the official installation media, boot chain, update hooks and recovery process pass end-to-end tests.
+- The exact bootloader, signing/enrollment model and initial installer-media trust chain remain to be validated against the selected CachyOS components and gaming compatibility requirements.
+
+### Recovery
+
+- Btrfs is the recommended default because it supports the planned snapshot-assisted recovery workflow.
+- ext4 remains supported, with documented package downgrade and backup-based recovery rather than snapshot claims.
+- Snapshot tooling must preserve bootability and clearly distinguish system rollback from user-data restoration.
+- Provide a recovery environment and documented offline repair path.
+
+References: [Calamares](https://calamares.io/about/), [Calamares partitioning guide](https://calamares.codeberg.page/guide/partitions/), [CachyOS Secure Boot guidance](https://wiki.cachyos.org/configuration/secure_boot_setup/).
+
+### Not decided
+
+Exact Calamares modules, partition/subvolume layout, bootloader, UEFI key enrollment model, LUKS2 defaults/crypt parameters, Secure Boot signing custody and snapshot tooling require prototype validation before distribution implementation.
