@@ -1782,3 +1782,28 @@ See ADR-024 and ADR-025 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.
 - Core licensing remains deferred pending project-wide compatibility, contributor, patent, distribution and legal review.
 
 See ADR-026 through ADR-029 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+## 45. Core service, API and desktop integration — 22 November 2026
+
+ADR-030 defines the initial runtime integration:
+- Linux desktop core runs as a per-user systemd user service; Linux headless deployments use a dedicated unprivileged service account.
+- Windows desktop core runs as a per-user background process, not an elevated Windows service.
+- Axum/Tokio is the initial Rust API framework.
+- Client contracts use versioned HTTP-compatible APIs and WebSockets, described with OpenAPI 3.1; worker/plugin contracts use versioned JSON Schema-compatible definitions.
+- Local client transports use per-user Unix domain sockets on Linux and ACL-protected named pipes on Windows, with peer identity checks and short-lived scoped client sessions.
+- Python workers use the approved supervised JSON-over-stdio protocol.
+- Qt Quick/QML + Qt Quick Controls provide the UI; a thin C++ transport/view-model layer uses Qt Network and Qt WebSockets. Core owns business logic and authority.
+- SQLite is local-host only; WAL is not used over network filesystems. PostgreSQL remains the shared-server database.
+
+## 46. Linux installer and boot security — 22 November 2026
+
+ADR-031 defines:
+- Calamares as the initial installer framework, with our own branding/configuration and guided beginner plus advanced manual installation paths.
+- UEFI/GPT and Btrfs as beginner-mode defaults; ext4 remains available.
+- Optional LUKS2 full-system encryption, with separate credentials from assistant application encryption.
+- Secure Boot as a supported target, not mandatory; preserve enabled configurations and do not claim support until the full signed boot/update/recovery chain is validated.
+- Btrfs snapshots for system recovery, with clear limitations; ext4 uses backup/package downgrade recovery.
+- Exact bootloader, key enrollment, partition layout and snapshot tooling remain implementation validation tasks.
+
+See ADR-030 and ADR-031 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
