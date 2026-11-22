@@ -59,7 +59,7 @@
 
 ### SP-01 execution report — Linux prototype (2026-11-22)
 
-**Result:** Linux prototype checks passed; overall SP-01 remains **in progress** pending Windows validation and remaining acceptance checks.
+**Result:** The consolidated Linux regression suite passed. Overall SP-01 remains **in progress** pending Windows validation, retained/committed spike-fixture review and final dependency review.
 
 **Environment**
 - OS: CachyOS
@@ -67,42 +67,48 @@
 - Rust/Cargo: 1.100.0
 - Build tools observed: pkg-config 3.0.11, CMake 4.5.1, Ninja 1.13.2
 - rusqlite: 0.43.0
+- libsqlite3-sys: 0.40.0, locally patched copy
 - SQLCipher source/runtime: 4.20.0 (runtime reported `4.20.0 community`)
 - Bundled SQLite source version reported by the dependency: 3.54.1
-- SQLCipher feature: `bundled-sqlcipher-vendored-openssl`; backup API feature enabled for backup test
-- System SQLite pkg-config version: 3.54.0; system SQLCipher pkg-config metadata was not detected. The successful build used the bundled SQLCipher source and did not rely on system SQLCipher.
+- SQLCipher feature: `bundled-sqlcipher-vendored-openssl`; backup API feature enabled
+- System SQLite pkg-config version: 3.54.0; system SQLCipher pkg-config metadata was not detected. The successful build used bundled SQLCipher and did not rely on system SQLCipher.
 
 **Prototype and observed tests**
 1. Built a disposable Rust project under `/tmp/assistantv2-sp01-SSgSG0`; no production repository or existing assistant project was modified.
 2. Confirmed `PRAGMA cipher_version` returned SQLCipher 4.20.0.
-3. Created an FTS5 virtual table, inserted a record and successfully searched it.
-4. Created an encrypted on-disk database, closed and reopened it with the correct key, and recovered the original record.
-5. Searched the raw database bytes for a unique plaintext marker; marker was absent.
-6. Opened the database with an incorrect key; SQLite page authentication failed and the database was rejected.
-7. Created an encrypted online backup, reopened it with the correct key and recovered the record; an incorrect key was rejected.
-8. Confirmed WAL mode. A unique marker was absent from the WAL file.
-9. Ran a dedicated WAL test that generated 22 frames. A PASSIVE checkpoint reported 22 frames and 22 checkpointed; a subsequent TRUNCATE checkpoint reported no remaining frames, and all 20 test rows remained readable.
+3. Created an encrypted database and FTS5 virtual table; inserted content and successfully searched for a unique token.
+4. Closed and reopened the encrypted database with the correct key; the FTS5 search result remained available.
+5. Opened the database with an incorrect key; the database was rejected.
+6. Created an encrypted online backup, reopened it with the correct key and verified both FTS5 search and checkpoint-table data. An incorrect backup key was rejected.
+7. Searched the closed database and backup bytes for a unique plaintext marker; the marker was absent. Earlier targeted WAL marker check also passed.
+8. Confirmed WAL mode. A PASSIVE checkpoint observed 22 frames and 22 checkpointed; a subsequent TRUNCATE checkpoint reported no remaining frames. All 20 test rows remained readable.
+9. Modified an encrypted database byte at offset 2000 without touching the salt. SQLCipher logged an HMAC verification failure and the subsequent query was rejected.
+10. Patched the disposable local `libsqlite3-sys 0.40.0` build script to replace `-DSQLITE_ENABLE_LOAD_EXTENSION=1` with `-DSQLITE_OMIT_LOAD_EXTENSION=1`. Cargo resolved the patched local crate. A clean build (`cargo clean`, then `env -u CFLAGS cargo run --locked --offline`) passed without relying on a manually supplied CFLAGS variable.
+11. Verified `PRAGMA compile_options` reported `OMIT_LOAD_EXTENSION`, did not report `ENABLE_LOAD_EXTENSION`, and the SQL `load_extension()` function was unavailable. The compiled `libsqlcipher.a` archive contained neither `sqlite3_load_extension` nor `sqlite3_enable_load_extension`.
+12. The consolidated regression executable completed with all tests passing.
 
 **Acceptance status**
 - [x] Linux bundled build and runtime SQLCipher detection.
 - [x] Correct-key access and wrong-key rejection.
 - [x] FTS5 in the same encrypted build.
-- [x] Encrypted online backup and restore with searchable database content demonstrated in the preceding prototype.
-- [x] WAL mode, encrypted WAL marker check, PASSIVE/TRUNCATE checkpoint behaviour on local storage.
+- [x] Encrypted online backup and restore, including FTS5 content and wrong-key rejection.
+- [x] WAL mode and PASSIVE/TRUNCATE checkpoint behaviour on local storage.
+- [x] Modified-ciphertext rejection with SQLCipher HMAC failure observed.
+- [x] Explicit verification that extension loading is disabled in the patched Linux build.
+- [x] Clean locked offline Linux rebuild without manually supplied CFLAGS.
 - [ ] Windows clean build and runtime validation.
-- [ ] Modified-ciphertext rejection test.
-- [ ] Explicit verification that extension loading is disabled in the selected application configuration.
-- [ ] Reproducible clean-build verification from a retained, committed spike fixture and pinned lockfile review.
+- [ ] Retained/committed spike fixture and final pinned-lockfile/dependency review.
 
 **Limitations and interpretation**
+- The prototype and local crate patch remain disposable files outside the repository. The local patch has not yet been reviewed as a retained project dependency or tested on Windows.
 - The plaintext-marker checks are targeted smoke tests, not a general proof that no sensitive data can ever appear in temporary files, logs, journals or process memory.
-- Wrong-key rejection was demonstrated; deliberate ciphertext modification has not yet been tested.
-- The backup test used SQLCipher-keyed source and destination connections and verified restoration; broader crash/interruption and corruption-recovery behaviour remains untested.
-- The initial checkpoint test had already drained the WAL before the TRUNCATE call. A follow-up test corrected this evidence gap by observing 22 frames before checkpointing and confirming 22 were checkpointed.
+- Wrong-key and modified-ciphertext rejection were demonstrated for these test cases; broader corruption-recovery and crash/interruption behaviour remain untested.
+- The backup test used SQLCipher-keyed source and destination connections and verified restoration; it is not a complete backup/recovery assurance case.
 - No Windows result is available, so the cross-platform acceptance question remains open.
-- The temporary prototype uses a fixed test key only; it is not a production key-management design.
+- The temporary prototype uses fixed test keys only; this is not a production key-management design.
 
-**Decision:** Retain the approved rusqlite + bundled SQLCipher + FTS5 direction provisionally. Do not mark SP-01 fully complete or treat this Linux smoke test as production readiness until the outstanding checks are addressed.
+**Decision:** Retain the approved rusqlite + bundled SQLCipher + FTS5 direction provisionally. Retain the local `libsqlite3-sys` build-script patch as the current candidate for disabling extension loading. Do not mark SP-01 fully complete or treat this Linux smoke test as production readiness until the patch and fixture are reviewed in the repository and Windows validation passes.
+
 
 ### SP-02 — SQLx + PostgreSQL
 
