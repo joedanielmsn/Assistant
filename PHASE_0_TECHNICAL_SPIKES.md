@@ -1,6 +1,6 @@
 # Local Assistant 2.0 — Phase 0 Technical Spike Plan
 
-**Status:** Planned; experiments not yet executed  
+**Status:** In progress; SP-01 Linux prototype checks passed, cross-platform and remaining acceptance checks outstanding  
 **Date:** 2026-11-22  
 **Purpose:** Resolve high-risk compatibility and security assumptions before production implementation.  
 **Rule:** A spike is disposable validation code, not a production feature. Record environment, versions, commands, results, limitations and reproducibility instructions.
@@ -56,6 +56,53 @@
 - Dependency versions and feature flags are pinned and documented.
 
 **Fail / escalation:** Any plaintext fallback, platform-specific missing encryption, unreliable FTS5 integration or unrecoverable backup behaviour blocks the selected configuration.
+
+### SP-01 execution report — Linux prototype (2026-11-22)
+
+**Result:** Linux prototype checks passed; overall SP-01 remains **in progress** pending Windows validation and remaining acceptance checks.
+
+**Environment**
+- OS: CachyOS
+- Architecture: x86_64 (the host was not independently checked for the full x86-64-v3 feature set during this spike)
+- Rust/Cargo: 1.100.0
+- Build tools observed: pkg-config 3.0.11, CMake 4.5.1, Ninja 1.13.2
+- rusqlite: 0.43.0
+- SQLCipher source/runtime: 4.20.0 (runtime reported `4.20.0 community`)
+- Bundled SQLite source version reported by the dependency: 3.54.1
+- SQLCipher feature: `bundled-sqlcipher-vendored-openssl`; backup API feature enabled for backup test
+- System SQLite pkg-config version: 3.54.0; system SQLCipher pkg-config metadata was not detected. The successful build used the bundled SQLCipher source and did not rely on system SQLCipher.
+
+**Prototype and observed tests**
+1. Built a disposable Rust project under `/tmp/assistantv2-sp01-SSgSG0`; no production repository or existing assistant project was modified.
+2. Confirmed `PRAGMA cipher_version` returned SQLCipher 4.20.0.
+3. Created an FTS5 virtual table, inserted a record and successfully searched it.
+4. Created an encrypted on-disk database, closed and reopened it with the correct key, and recovered the original record.
+5. Searched the raw database bytes for a unique plaintext marker; marker was absent.
+6. Opened the database with an incorrect key; SQLite page authentication failed and the database was rejected.
+7. Created an encrypted online backup, reopened it with the correct key and recovered the record; an incorrect key was rejected.
+8. Confirmed WAL mode. A unique marker was absent from the WAL file.
+9. Ran a dedicated WAL test that generated 22 frames. A PASSIVE checkpoint reported 22 frames and 22 checkpointed; a subsequent TRUNCATE checkpoint reported no remaining frames, and all 20 test rows remained readable.
+
+**Acceptance status**
+- [x] Linux bundled build and runtime SQLCipher detection.
+- [x] Correct-key access and wrong-key rejection.
+- [x] FTS5 in the same encrypted build.
+- [x] Encrypted online backup and restore with searchable database content demonstrated in the preceding prototype.
+- [x] WAL mode, encrypted WAL marker check, PASSIVE/TRUNCATE checkpoint behaviour on local storage.
+- [ ] Windows clean build and runtime validation.
+- [ ] Modified-ciphertext rejection test.
+- [ ] Explicit verification that extension loading is disabled in the selected application configuration.
+- [ ] Reproducible clean-build verification from a retained, committed spike fixture and pinned lockfile review.
+
+**Limitations and interpretation**
+- The plaintext-marker checks are targeted smoke tests, not a general proof that no sensitive data can ever appear in temporary files, logs, journals or process memory.
+- Wrong-key rejection was demonstrated; deliberate ciphertext modification has not yet been tested.
+- The backup test used SQLCipher-keyed source and destination connections and verified restoration; broader crash/interruption and corruption-recovery behaviour remains untested.
+- The initial checkpoint test had already drained the WAL before the TRUNCATE call. A follow-up test corrected this evidence gap by observing 22 frames before checkpointing and confirming 22 were checkpointed.
+- No Windows result is available, so the cross-platform acceptance question remains open.
+- The temporary prototype uses a fixed test key only; it is not a production key-management design.
+
+**Decision:** Retain the approved rusqlite + bundled SQLCipher + FTS5 direction provisionally. Do not mark SP-01 fully complete or treat this Linux smoke test as production readiness until the outstanding checks are addressed.
 
 ### SP-02 — SQLx + PostgreSQL
 
