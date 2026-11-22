@@ -1819,3 +1819,18 @@ See ADR-030 and ADR-031 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.
 - Btrfs snapshot boot entries must be tested for kernel/initramfs consistency and boot recovery.
 
 See ADR-032 and ADR-033 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+## 48. Cloud inference privacy defaults — 22 November 2026
+
+ADR-034 clarifies the local-first cloud policy:
+- Local-only inference is the default until the user configures a cloud-use mode.
+- Explicit per-task use, confirmation-before-use and policy-governed automatic fallback remain configurable.
+- Automatic cloud fallback is off until explicitly enabled.
+- Sensitivity labels and workspace policies take precedence over general provider settings.
+- Screen, voice, credentials and other sensitive material are excluded from cloud requests by default and require separate explicit authorization.
+- Cloud credentials remain in protected credential storage; workers and plugins do not receive provider secrets.
+- Provider retention/training policies must be disclosed and cannot be promised by the local assistant.
+- Cloud requests are functional user-authorized traffic, not telemetry.
+
+See ADR-034 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
