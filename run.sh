@@ -8,10 +8,10 @@ RUN_DIR="$ROOT/.run"
 PID_FILE="$RUN_DIR/assistantd.pid"
 LOG_FILE="$RUN_DIR/assistantd.log"
 
-MODEL="\${ASSISTANT_MODEL:-qwen3.5:2b-q4_K_M}"
-OLLAMA_HOST="\${OLLAMA_HOST:-http://127.0.0.1:11434}"
+MODEL="${ASSISTANT_MODEL:-qwen3.5:2b-q4_K_M}"
+OLLAMA_HOST="${OLLAMA_HOST:-http://127.0.0.1:11434}"
 OLLAMA_URL="$OLLAMA_HOST/api/chat"
-CONTEXT="\${ASSISTANT_CONTEXT_LENGTH:-8192}"
+CONTEXT="${ASSISTANT_CONTEXT_LENGTH:-8192}"
 PYTHON="$(command -v python3 || true)"
 
 usage() {
@@ -186,7 +186,7 @@ start_core() {
 }
 
 run_app() {
-    if [[ -z "\${XDG_RUNTIME_DIR:-}" || ! -d "$XDG_RUNTIME_DIR" ]]; then
+    if [[ -z "${XDG_RUNTIME_DIR:-}" || ! -d "$XDG_RUNTIME_DIR" ]]; then
         printf 'XDG_RUNTIME_DIR is unavailable. Launch from your normal desktop session.\n' >&2
         exit 1
     fi
@@ -199,7 +199,7 @@ run_app() {
     "$GUI"
 }
 
-case "\${1:-run}" in
+case "${1:-run}" in
     run|start) run_app ;;
     build)
         install_dependencies_if_needed
