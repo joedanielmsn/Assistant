@@ -245,6 +245,71 @@
 - stdout diagnostics cannot corrupt protocol framing.
 - Temporary references are scoped, expire and are cleaned up.
 
+### SP-04 execution report — integrated Linux prototype (2026-11-22)
+
+**Result:** The integrated disposable Linux supervisor harness completed all reported checks successfully. SP-04 remains **in progress**; this is prototype evidence, not production acceptance. Production integration, trusted-context enforcement, cooperative cancellation semantics, scoped temporary-file references, OS-enforced sandboxing and Windows validation remain open.
+
+**Environment**
+- OS: CachyOS Linux, x86_64; kernel 7.3.5-2-cachyos (environment recorded during the SP-03 work on the same development system).
+- Rust/Cargo: 1.100.0.
+- Tokio: 1.54.1.
+- serde_json: 1.0.154.
+- Python: 3.14.10.
+- Cached Rust dependencies allowed the prototype to build and run with `cargo run --offline`.
+- All source files were created in a disposable directory under `/tmp/assistantv2-sp04-2DMoaZ`; no production repository source was modified.
+
+**Integrated harness and observed results**
+
+The integrated Rust/Tokio harness launched Python workers with stdin/stdout/stderr pipes, used newline-delimited JSON, checked protocol version 1 and bounded individual frames to 64 KiB. It ran the lifecycle/protocol group followed by a concurrency/diagnostics group.
+
+1. Worker startup and protocol-version negotiation passed.
+2. Five sequential correlated request/response exchanges on one worker passed.
+3. Structured worker error response was surfaced and checked.
+4. Mismatched response correlation ID was rejected.
+5. Graceful worker shutdown and process reaping passed.
+6. Incompatible protocol version was rejected.
+7. Malformed JSON output was rejected.
+8. Oversized worker output was rejected.
+9. Unexpected worker exit (exit code 23) was detected and reaped.
+10. A slow worker exceeded the response deadline; the pending read was abandoned and the worker process terminated/reaped.
+11. A replacement worker started, negotiated the protocol and handled a request.
+12. Five concurrent load jobs obeyed a two-worker semaphore limit.
+13. Each load worker emitted 1 MiB to stderr; the supervisor drained the stream without blocking while retaining no more than 4 KiB per worker.
+14. All concurrent worker processes were reaped.
+
+**Acceptance status — Linux prototype evidence**
+- [x] Versioned protocol handshake and incompatible-version rejection.
+- [x] Structured JSON requests/responses and correlation-ID checking.
+- [x] Structured worker error response handling.
+- [x] Malformed and oversized worker output rejection.
+- [x] stdout protocol and stderr diagnostic streams separated.
+- [x] Worker crash detection and process reaping.
+- [x] Response deadline and forced cancellation/termination path.
+- [x] Replacement worker startup after failure.
+- [x] Demonstrated bounded concurrent worker count in a semaphore-based harness.
+- [x] Continuous stderr draining with bounded retained sample per worker.
+- [ ] End-to-end trusted user/workspace context creation, propagation and enforcement across the actual core-to-worker request pipeline.
+- [ ] Cooperative cancellation message/acknowledgement semantics and safe handling of work that may have completed before cancellation.
+- [ ] Out-of-order and multiplexed concurrent request handling on a single worker.
+- [ ] Scoped temporary-file reference creation, expiry, access checks and cleanup for large payloads.
+- [ ] Aggregate CPU, memory, process-count and diagnostic-storage budgets integrated with the central resource manager.
+- [ ] Production worker restart/backoff policy, health monitoring and shutdown supervision.
+- [ ] OS-enforced Linux worker sandbox integration and conformance testing.
+- [ ] Windows process supervision and equivalent protocol/lifecycle validation.
+
+**Limitations and interpretation**
+- The harness is a disposable demonstration, not a reusable production supervisor library or integrated core service.
+- The concurrency cap was demonstrated with a Tokio semaphore around short-lived load workers. It does not yet establish production scheduling, fairness, admission control or machine-wide resource budgeting.
+- The stderr test retained at most 4 KiB per worker while draining 1 MiB, but aggregate retention still scales with the number of concurrently active workers. Production must impose an aggregate logging/storage budget and safe redaction.
+- Cancellation currently means abandoning a pending read and terminating the worker. It does not demonstrate cooperative cancellation or determine whether a non-idempotent operation completed before termination.
+- Correlation was tested with sequential requests and a deliberately mismatched ID. Multiplexed/out-of-order response routing on one worker was not implemented.
+- The prototype did not implement a full trusted execution-context envelope. The earlier Stage 1 demonstration treated a worker-supplied identity claim as untrusted response data, but that is not proof of end-to-end identity propagation or authorization enforcement.
+- Large-file/scoped temporary references were not implemented.
+- Process separation and pipe supervision do not constitute an OS-enforced sandbox.
+- No Windows result is available.
+
+**Decision:** Retain Rust/Tokio supervision with separate Python worker processes and a versioned JSON-over-stdio protocol as the approved implementation direction. Keep stdout protocol-only and stderr diagnostics-only. Treat worker output as untrusted, keep identity and authorization authority in the core, enforce bounded frames and deadlines, and require process/resource limits. Do not mark SP-04 fully complete until the outstanding trusted-context, cancellation, multiplexing, temporary-reference, resource-budget, sandbox and Windows criteria are addressed.
+
 ### SP-05 — Native worker sandbox conformance
 
 **Question:** Can native plugin/automation workers be meaningfully restricted on each supported OS?
