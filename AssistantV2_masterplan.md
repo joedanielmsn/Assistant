@@ -1126,3 +1126,31 @@ The following is a starting baseline; individual boundaries may be refined as wo
 - Sandbox and OS-enforcement technologies.
 - Service managers and platform-specific lifecycle implementation.
 - Worker restart, health-check and failure-recovery policy.
+
+
+# 25. APPROVED ARCHITECTURE: GAMING-MODE RESOURCE PROTECTION
+
+Approved on 22 November 2026. Gaming Mode prioritizes the game while retaining an optional minimal CPU-only assistant.
+
+## 25.1 Approved behaviour
+
+- Avoid assistant GPU inference and release assistant GPU/model allocations when necessary, keeping the GPU available to the game.
+- Optionally run a very small CPU-only model, initially targeting approximately 0.4B–0.8B parameters. This is a target range, not a final model selection.
+- Retain basic web search and selected lightweight tools where practical.
+- Enforce strict, adaptive CPU and RAM budgets to minimize competition with the game.
+- Pause or defer nonessential indexing, maintenance, model downloads and background automations.
+- Restore normal resource scheduling and model availability when Gaming Mode ends.
+
+## 25.2 Reliability and tool-use requirements
+
+A tiny model may be unreliable at choosing tools or producing structured calls. Use deterministic tool routing, strict input/output validation and the central permission broker; never treat the model as an authorization authority.
+
+Resource budgets must adapt to actual machine and game load rather than assume one fixed safe allowance. Mode transitions must be recoverable, including when a game exits unexpectedly.
+
+## 25.3 Still open
+
+- Exact CPU and RAM budgets.
+- CPU model/runtime and final model selection.
+- Lightweight tool allowlist and web-search implementation.
+- Game detection and mode-transition implementation.
+- Hardware-specific validation and performance thresholds.
