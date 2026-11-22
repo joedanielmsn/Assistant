@@ -206,7 +206,10 @@ fn validate_private_directory(path: &Path, metadata: &fs::Metadata) -> io::Resul
     {
         return Err(io_error(
             io::ErrorKind::PermissionDenied,
-            format!("runtime directory is not a private, user-owned directory: {}", path.display()),
+            format!(
+                "runtime directory is not a private, user-owned directory: {}",
+                path.display()
+            ),
         ));
     }
     Ok(())
@@ -273,7 +276,10 @@ where
 
         if let Some(newline) = chunk[..count].iter().position(|byte| *byte == b'\n') {
             if frame.len() + newline > MAX_FRAME_BYTES {
-                return Err(io_error(io::ErrorKind::InvalidData, "frame exceeds size limit"));
+                return Err(io_error(
+                    io::ErrorKind::InvalidData,
+                    "frame exceeds size limit",
+                ));
             }
             frame.extend_from_slice(&chunk[..newline]);
 
@@ -288,7 +294,10 @@ where
 
         frame.extend_from_slice(&chunk[..count]);
         if frame.len() > MAX_FRAME_BYTES {
-            return Err(io_error(io::ErrorKind::InvalidData, "frame exceeds size limit"));
+            return Err(io_error(
+                io::ErrorKind::InvalidData,
+                "frame exceeds size limit",
+            ));
         }
     }
 }
@@ -316,10 +325,7 @@ fn audit(uid: u32, request_id: &str, operation: &str, decision: &str) {
     );
 }
 
-async fn handle_connection(
-    mut stream: UnixStream,
-    state: Arc<ServerState>,
-) -> io::Result<()> {
+async fn handle_connection(mut stream: UnixStream, state: Arc<ServerState>) -> io::Result<()> {
     let credentials = stream.peer_cred()?;
     let principal = Principal {
         uid: credentials.uid(),
@@ -414,10 +420,7 @@ async fn handle_connection(
     write_response(&mut stream, &Response::success(request.id, result)).await
 }
 
-async fn run_server(
-    listener: UnixListener,
-    state: Arc<ServerState>,
-) -> io::Result<()> {
+async fn run_server(listener: UnixListener, state: Arc<ServerState>) -> io::Result<()> {
     let permits = Arc::new(Semaphore::new(MAX_CONNECTIONS));
     let mut tasks = JoinSet::new();
     let mut shutdown = Box::pin(tokio::signal::ctrl_c());
