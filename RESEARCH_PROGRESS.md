@@ -502,3 +502,26 @@ Recorded 22 November 2026:
 - Server audit records remain narrowly scoped and separate from product analytics.
 
 See ADR-035 and Masterplan Section 49.
+
+
+## Current architecture status — 22 November 2026
+
+**Architecture direction consolidated through ADR-035.** The remaining work is now implementation-specific verification and engineering preparation, not another broad product-preference questionnaire.
+
+Consistency reconciliation:
+- ADR-026 supersedes the managed-sync option in ADR-015: self-hosted sync only.
+- ADR-032 refines ADR-021's database-access candidate: rusqlite + SQLCipher + FTS5 for personal SQLite; SQLx/PostgreSQL for shared-server storage.
+- ADR-028 clarifies ADR-016's curated rolling release as conventional signed package updates with tested recovery.
+- ADR-024/025 reinforce worker isolation, permission boundaries, encryption and database isolation.
+- ADR-030/031/033 set core/API/UI, installer and GRUB defaults; Secure Boot support remains gated on full-chain validation.
+- ADR-034/035 formalize local-only cloud defaults and no telemetry.
+
+A phased implementation plan has been created at [IMPLEMENTATION_ROADMAP.md](./IMPLEMENTATION_ROADMAP.md). The next proposed stage is Phase 0: architecture traceability, CI scaffolding design and focused compatibility/security spikes. **No implementation has started.**
+
+Intentionally deferred product decisions:
+- Distribution name and branding.
+- Core licence, pending full dependency and distribution audit.
+- External identity-provider support for shared servers.
+- Future CPU architectures, additional GPU backends and any future managed synchronization service.
+
+The architecture baseline is ready for Phase 0 planning. Do not treat unvalidated sandbox, cryptographic, Secure Boot, database or hardware configurations as implemented or certified.
