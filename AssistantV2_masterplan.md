@@ -1247,3 +1247,98 @@ Use weighted fair scheduling per user, individual concurrency limits and priorit
 - Power and thermal policy.
 - Linux and Windows resource-control APIs and concrete implementation.
 - Hardware-specific performance and fairness validation.
+
+
+# 28. APPROVED ARCHITECTURE: COMPUTER INTERACTION AND TOOL EXECUTION
+
+Approved on 22 November 2026. This establishes the interaction strategy and execution safeguards, not specific tool libraries or sandbox technologies.
+
+## 28.1 Layered interaction strategy
+
+Prefer the most reliable available interface in this order:
+
+1. Native application APIs and structured integrations.
+2. Operating-system accessibility interfaces.
+3. Browser automation using semantic controls and locators.
+4. Visual screen understanding with keyboard and pointer interaction as a fallback.
+
+This avoids making fragile coordinate-based automation the default.
+
+## 28.2 Common tool interface
+
+Use a common internal tool contract with adapters for external integration protocols such as MCP. MCP is supported, but it is not required to be the sole internal tool interface.
+
+Tool contracts should include validated input/output schemas, capability declarations, timeouts, cancellation, execution identifiers and auditable outcomes.
+
+## 28.3 Host access and permission enforcement
+
+The user selected broad host access instead of a fixed folder allowlist. Broad access is not ambient or unrestricted access.
+
+- Every file, process, terminal and system operation must be evaluated by the central permission broker.
+- Every operation carries trusted user, workspace, component, target-resource and action context.
+- User-wide grants remain bounded by ownership, workspace membership, resource restrictions and other applicable policies.
+- Terminal requests must be structured, validated and attributable; previews and confirmation follow the approved risk policy.
+- Execute sensitive or untrusted work in isolated, restartable workers with OS-enforced restrictions and resource limits where appropriate.
+- Validate paths and targets at execution time.
+- Distinguish read-only operations from modifications and execution.
+- Treat tool output, web content and file contents as untrusted data, never as instructions that can override platform policy.
+
+## 28.4 Browser identity
+
+Use a separate assistant-managed browser profile by default. Connecting to the user's existing browser profile is a separate, explicitly authorized capability.
+
+## 28.5 Recovery
+
+Use operation-level undo where supported and checkpoints for consequential or bulk changes. The UI and action history must clearly identify operations that cannot be reliably undone.
+
+## 28.6 Still open
+
+- Tool schema and capability-manifest details.
+- MCP adapter design.
+- Terminal command policy and approval thresholds.
+- Worker sandbox and OS-enforcement technologies.
+- Linux/Windows accessibility and browser automation libraries.
+- Concrete undo and checkpoint mechanisms.
+
+---
+
+# 29. APPROVED ARCHITECTURE: DESKTOP EXPERIENCE, AWARENESS AND VOICE
+
+Approved on 22 November 2026. This establishes user-facing behaviour and privacy requirements, not a UI framework or speech technology selection.
+
+## 29.1 Unified desktop application
+
+Provide one primary desktop application with optional dashboard, tray controls, notifications and floating companion surfaces. These remain clients/views of the authoritative core, not independent authorities or permission systems.
+
+## 29.2 Continuous desktop awareness
+
+The user selected continuous screen awareness while the assistant is running, with a user-configurable opt-out.
+
+Continuous awareness is not permission for covert recording. Mandatory safeguards:
+
+- Display a persistent, unmistakable indicator whenever screen content is captured or analysed.
+- Provide immediate pause and disable controls.
+- Support application/window exclusions and configurable capture scope.
+- Default to transient processing; do not silently retain screen recordings or captured frames.
+- Require separate explicit permission and retention choices for screenshot storage, persistent extraction or sharing.
+- Respect operating-system capture permissions and privacy controls.
+- Prefer local processing where practical; disclose and obtain permission before sending screen content to cloud services.
+- Respect protected OS surfaces such as lock screens and secure desktops.
+- Make application metadata awareness and screen-content awareness separately configurable.
+
+## 29.3 Voice
+
+Push-to-talk is the default. Wake-word activation is optional and must be explicitly enabled. Provide visible microphone/listening status, immediate mute and disable controls, local-first processing where practical, and no default permanent recording or retention of raw audio.
+
+## 29.4 Accessibility and notifications
+
+Support keyboard navigation, clear focus handling and screen-reader accessibility. Notifications must be configurable, respect quiet hours and avoid excessive interruptions.
+
+## 29.5 Still open
+
+- Desktop/UI framework and application shell.
+- Tray, overlay and notification implementation.
+- Screen-capture adapters, indicator design and platform privacy integration.
+- Wake-word engine and speech recognition/synthesis technologies.
+- Audio and screen-content retention controls and detailed settings.
+
