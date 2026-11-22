@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership, central permission-broker policy and modular-core/selective-worker architecture approved; implementation technologies remain unselected.
+**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership, central permission-broker policy, modular-core/selective-worker architecture and core/client communication direction approved; implementation technologies remain unselected.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
@@ -1029,7 +1029,7 @@ The following remain under research and must not be treated as approved implemen
 - Authentication and session technology.
 - Encryption and key management.
 - Exact retention periods and backup lifecycle.
-- IPC transport and remote-client protocol.
+- Concrete IPC path/ACL configuration, authentication/session implementation and remote-access integration.
 - Concrete resource scheduler and fairness algorithm.
 - Exact service/process topology and platform-specific implementation.
 
@@ -1154,3 +1154,49 @@ Resource budgets must adapt to actual machine and game load rather than assume o
 - Lightweight tool allowlist and web-search implementation.
 - Game detection and mode-transition implementation.
 - Hardware-specific validation and performance thresholds.
+
+
+# 26. APPROVED ARCHITECTURE: CORE/CLIENT COMMUNICATION, IPC AND REMOTE ACCESS
+
+Approved on 22 November 2026. This establishes the communication architecture and security boundaries, not the concrete server library or authentication implementation.
+
+## 26.1 One authoritative core and common client API
+
+The platform uses one authoritative core as its control and security boundary. Desktop interfaces, CLI clients, browser interfaces, companion surfaces and future clients communicate with the core through a versioned, language-neutral API.
+
+Clients must not access private stores, privileged tools or protected resources directly. The core establishes trusted identity and workspace context, evaluates authorization and routes approved operations.
+
+## 26.2 Communication model
+
+- Use a versioned HTTP-compatible API for structured request/response operations.
+- Use a WebSocket event channel for streaming responses, task progress, state changes and notifications.
+- Keep the API contract independent of a particular programming language or transport implementation.
+- Support explicit API version negotiation and capability discovery so clients can handle incompatible versions and unsupported features safely.
+- Internal worker communication may use a specialised transport if measured requirements justify it, without weakening identity or authorization boundaries.
+
+## 26.3 Platform-specific local IPC
+
+- **Linux:** Unix domain sockets, with OS peer-identity checks and restrictive socket permissions.
+- **Windows:** named pipes, with explicit access-control configuration and client identity checks.
+- Local IPC is not implicitly trusted. A successful local connection is not blanket permission to access data or perform actions; establish an authenticated client session and authorize every operation.
+
+## 26.4 Remote access and authentication
+
+- Remote access is disabled by default.
+- Users may explicitly enable LAN access or secure remote access through a user-configured VPN or tunnel.
+- Shared-server deployments use built-in accounts with passkey support, with optional external identity-provider integration.
+- Authentication establishes identity; it does not itself grant resource or action permissions.
+- Remote endpoints must be securely authenticated. Unauthenticated development endpoints must never be exposed as remote services.
+
+## 26.5 Worker and plugin identity
+
+Worker and plugin identities are constrained by the core. They cannot impersonate users, self-assert arbitrary workspace context or bypass the central permission broker. Every operation retains trusted user, workspace and component context as applicable.
+
+## 26.6 Still open
+
+- Concrete HTTP server/library, WebSocket implementation and API schema format.
+- Socket/pipe paths, access-control details and platform-specific lifecycle.
+- Passkey implementation, external identity-provider protocols and session/token format and lifecycle.
+- LAN exposure controls and VPN/tunnel integration.
+- API compatibility/version-support policy.
+- Whether any internal worker protocol should differ from the client API.
