@@ -1527,3 +1527,18 @@ Prefer upstream components and minimise long-lived custom patches where practica
 ## 35.6 Still open
 
 Distribution name and branding, exact CachyOS components to adopt or replace, repository/build infrastructure, package promotion and testing policy, desktop-shell modifications, kernel variants, installer configuration, filesystem/partitioning defaults, Secure Boot, hardware profiles, recovery tooling, update/rollback mechanics and release support policy.
+
+
+# 36. APPROVED ARCHITECTURE: PRIVILEGED SYSTEM OPERATIONS
+
+Approved on 22 November 2026. The central permission broker is the authoritative authorization and approval layer for assistant-initiated privileged system operations. A second interactive Polkit/UAC authorization prompt is not required for every operation.
+
+- The ordinary assistant core and model workers do not run with broad root/administrator privileges.
+- Privileged execution is delegated to a narrowly scoped OS helper exposing only predefined, structured operations with validated arguments and targets.
+- The helper must not expose arbitrary shell execution, unrestricted administrator/root access or a general-purpose privilege escalation interface.
+- Plugins, specialists, automations and models cannot invoke the helper directly or bypass the central broker.
+- OS-enforced process isolation, access controls and least-privilege boundaries remain mandatory. Only the duplicate interactive authorization layer is omitted.
+- If trusted identity, broker policy evaluation or authorization is unavailable or ambiguous, the operation is denied.
+- The broker records authorization decisions and execution outcomes under the applicable audit and data-minimization policies.
+
+The exact helper architecture, operation catalogue, platform-specific implementation, privilege lifecycle, IPC protocol and audit storage remain open for implementation design.
