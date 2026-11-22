@@ -1360,3 +1360,23 @@ Exact GRUB build/configuration, shim package/source, MOK ownership and custody, 
 ### Not decided
 
 Exact provider adapter schemas, per-provider privacy metadata, UI disclosure format, enterprise policy controls and provider-specific retention documentation remain implementation specifications.
+
+
+## ADR-035 — No-telemetry and local diagnostics policy
+
+**Status:** Approved product and privacy policy  
+**Date:** 2026-11-22
+
+- The platform and Linux distribution collect no telemetry: no analytics events, usage tracking, behavioural profiling, background diagnostic uploads or telemetry SDKs.
+- Do not add remote crash reporting or automatic crash-dump uploads.
+- Diagnostic logs remain local by default, access-controlled and subject to the configured retention policy.
+- Logs must avoid conversation content, screen/audio content, credentials, encryption keys, tokens and unnecessary personal data.
+- Users may explicitly preview and export a diagnostic bundle for support. The bundle must identify included files/categories, redact secrets where possible and require confirmation before the user sends it.
+- Functional network traffic is not telemetry: user-configured sync, cloud inference, package updates and plugin/model downloads may contact their selected endpoints, with the applicable privacy disclosures.
+- Update and security notices may be delivered through explicitly configured package repositories or user-requested checks; do not add silent analytics or behavioural reporting.
+- Server operators may retain narrowly scoped security/operational audit records required for service integrity, under the configurable audit/retention policies. These records are not product analytics and must not expose private user content to administrators by default.
+- No hidden feature flags, remote configuration or hosted account dependency may be introduced to circumvent the no-telemetry or local-first commitments.
+
+### Not decided
+
+Exact local log schema, redaction implementation, diagnostic-bundle format, support workflow and server audit retention defaults remain implementation specifications.
