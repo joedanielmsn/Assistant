@@ -638,3 +638,31 @@ A modern baseline aligns with the CachyOS-derived performance direction and allo
 ### Not decided
 
 Exact processor-generation support lists, compiler flags, package repository variants, runtime dispatch strategy and hardware certification tests remain implementation and release-engineering decisions.
+
+
+## ADR-020 — Desktop application framework: Qt 6 + QML
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use **Qt 6 with QML/Qt Quick** as the framework for the primary cross-platform desktop application.
+
+### Constraints and direction
+
+- Target Linux and Windows desktop clients from a shared application codebase where practical.
+- Use QML/Qt Quick for the desktop presentation layer and Qt's platform integration capabilities where appropriate.
+- Keep the desktop application as a client of the authoritative assistant core; it must not become a second source of truth for identity, permissions, task state or resource policy.
+- Design the application to support the primary desktop experience and optional dashboard, tray controls, notifications and floating companion surfaces.
+- Integrate with KDE Plasma while retaining a viable Windows desktop experience.
+- Keep platform-specific integrations behind adapters so desktop UI logic remains portable.
+- Preserve accessibility, keyboard navigation, screen-reader support and clear privacy/awareness indicators.
+
+### Rationale
+
+Qt 6 + QML aligns with the KDE Plasma foundation selected for the AI-first Linux distribution, offers a mature cross-platform desktop toolkit and supports rich desktop interfaces without making the assistant core dependent on a web frontend.
+
+### Not decided
+
+Exact Qt modules, QML architecture, UI state-management approach, build system, packaging, platform-specific tray/overlay implementations and accessibility implementation details remain open for implementation planning.
