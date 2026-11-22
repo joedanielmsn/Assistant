@@ -87,6 +87,7 @@ void ChatController::sendMessage(const QString &rawText)
     m_socket = socket;
 
     connect(socket, &QLocalSocket::connected, this, [this, socket]() {
+        m_responseBuffer.clear();
         const QJsonObject payload{{QStringLiteral("messages"), boundedHistory()}};
         const QJsonObject request{
             {QStringLiteral("version"), 1},
@@ -99,9 +100,12 @@ void ChatController::sendMessage(const QString &rawText)
     });
 
     connect(socket, &QLocalSocket::readyRead, this, [this, socket]() {
-        const QByteArray responseLine = socket->readLine();
-        if (responseLine.isEmpty())
+        m_responseBuffer.append(socket->readAll());
+        const qsizetype newline = m_responseBuffer.indexOf('\n');
+        if (newline < 0)
             return;
+        const QByteArray responseLine = m_responseBuffer.left(newline);
+        m_responseBuffer.remove(0, newline + 1);
 
         QJsonParseError parseError;
         const QJsonDocument document = QJsonDocument::fromJson(responseLine, &parseError);

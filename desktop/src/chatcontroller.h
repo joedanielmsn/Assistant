@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QByteArray>
 #include <QJsonArray>
 #include <QLocalSocket>
 #include <QPointer>
@@ -37,6 +38,7 @@ private:
 
     QVariantList m_messages;
     QJsonArray m_history;
+    QByteArray m_responseBuffer;
     QPointer<QLocalSocket> m_socket;
     QString m_statusText = QStringLiteral("Ready to connect to your local core");
     bool m_busy = false;
