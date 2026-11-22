@@ -385,3 +385,41 @@ Remaining Phase 8 work:
 - Project-wide licence and dependency compatibility audit before architecture finalisation and public release.
 
 See ADR-023 and Masterplan Section 42. Implementation has not started.
+
+
+### Phase 8 technical consolidation — ADR-024 through ADR-029
+
+**Status:** Initial cross-cutting technical directions recorded 22 November 2026. Detailed implementation and independent validation remain mandatory.
+
+Completed:
+- **Security/threat model (ADR-024):** Threat-model coverage, ASVS 5.0 reference, layered Linux isolation (Bubblewrap, Landlock, seccomp and resource controls), Windows AppContainer path, Wasmtime capability restrictions, fail-closed behaviour and security verification gates.
+- **Encryption/data isolation (ADR-025):** Envelope encryption, Argon2id master-password derivation, separate recovery key, scoped user/workspace keys, protected in-memory key lifecycle, opt-in OS-vault convenience unlock, encrypted SQLite direction and application-layer PostgreSQL protection.
+- **Synchronization (ADR-026):** Self-hosted only. This supersedes the managed synchronization service option in ADR-015. E2EE private payloads, trusted device enrollment/revocation, separate workspace key boundaries and safe conflict handling.
+- **Hardware (ADR-027):** CPU fallback, NVIDIA-first validation, AMD/Intel support goals, backend-specific compatibility matrix, hybrid graphics and resource-aware inference testing.
+- **Updates/recovery (ADR-028):** Conventional curated rolling updates, signed native packages, Btrfs snapshots with honest rollback limits, ext4 recovery procedures, TUF-style secure metadata for applicable app/plugin artifacts, SBOM/provenance.
+- **Plugin/licence governance (ADR-029):** Manifest and capability verification, signatures as provenance rather than safety proof, official and third-party registries, SPDX metadata, SBOMs and project-wide licence review.
+
+Research references consulted:
+- OWASP ASVS 5.0: https://asvs.owasp.org/
+- RFC 9106 Argon2: https://www.rfc-editor.org/rfc/rfc9106.html
+- libsodium key derivation and secretstream: https://doc.libsodium.org/key_derivation and https://doc.libsodium.org/secret-key_cryptography/secretstream
+- Linux Landlock and seccomp: https://docs.kernel.org/userspace-api/landlock.html and https://docs.kernel.org/userspace-api/seccomp_filter.html
+- Bubblewrap: https://github.com/containers/bubblewrap
+- Microsoft application isolation: https://learn.microsoft.com/en-us/windows/security/book/application-security-application-isolation
+- llama.cpp backend build guide: https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md
+- ONNX Runtime execution providers: https://onnxruntime.ai/docs/execution-providers/
+- TUF: https://theupdateframework.github.io/specification/latest/
+- Arch package signing: https://wiki.archlinux.org/title/Pacman/Package_signing
+- Sigstore: https://docs.sigstore.dev/about/overview/
+- SPDX: https://spdx.org/licenses/
+
+Remaining before architecture sign-off:
+- Review and validate cryptographic formats, Rust crypto bindings, SQLCipher/FTS5 compatibility, secure key lifecycle and recovery UX.
+- Build and test Linux/Windows sandbox profiles, including adversarial negative tests and independent review.
+- Define self-hosted sync wire protocol, device enrollment and workspace key rotation.
+- Establish tested hardware/driver/runtime compatibility and performance thresholds.
+- Validate Btrfs snapshot/boot recovery, ext4 recovery, conventional rolling update failure handling and Windows update/rollback.
+- Define TUF role/key custody, signing ceremony, plugin registry moderation and SBOM tooling.
+- Complete project-wide licence/dependency and asset/model rights audit.
+
+No implementation has started. These are architecture directions and validation requirements, not claims that security controls have already been implemented or certified.
