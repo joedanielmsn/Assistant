@@ -588,3 +588,28 @@ A single authoritative authorization experience avoids duplicate prompts while p
 ### Not decided
 
 The exact helper architecture, operation catalogue, platform-specific implementation, privilege lifecycle, IPC protocol and audit storage remain implementation decisions.
+
+## ADR-018 — Initial platform support is x86-64 only
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+The initial supported hardware architecture for Local Assistant 2.0 and its associated desktop/server/distribution deliverables is **x86-64 (AMD64) only**.
+
+### Constraints
+
+- Initial official builds, installation images, packaging, testing and support target x86-64 systems.
+- ARM64 and other CPU architectures are outside the initial support commitment; do not add them to release or compatibility promises.
+- Keep architecture-dependent code behind portable interfaces where practical, so future support can be evaluated without committing to it now.
+- Hardware-vendor and GPU support remain separate compatibility dimensions; x86-64 support does not imply that every GPU or device is supported.
+
+### Rationale
+
+Concentrating initial development, validation and release engineering on one CPU architecture reduces build, testing, packaging and support complexity.
+
+### Not decided
+
+Minimum CPU instruction-set baseline, supported processor generations, GPU/accelerator matrix and exact hardware certification requirements remain open for compatibility research.
+
