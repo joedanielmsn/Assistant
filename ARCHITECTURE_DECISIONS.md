@@ -434,3 +434,94 @@ Use a **layered, scope-aware memory system with governed writes and authorizatio
 ### Not decided
 
 Concrete memory schemas, database and vector/index technologies, embedding and reranking models, retrieval algorithms, conflict-resolution implementation, memory retention periods, deletion guarantees, project watcher mechanisms and user-review interface remain open.
+
+
+
+## ADR--013 — Event-driven automation and governed workflows
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use event-driven automation with durable, bounded workflows integrated with the central orchestrator, resource manager and permission broker.
+
+### Approved behaviour
+
+- Prefer explicit events, user requests and scheduled triggers over continuous polling or unnecessary model inference.
+- Persist workflow state, scheduled waits, checkpoints and approval pauses so workflows can survive core restarts.
+- Every automation has a trusted owner and user/workspace scope. Shared workflows require explicit workspace ownership and policy.
+- Background execution retains initiating identity, scope and authorization context; revalidate permissions before delayed or consequential actions when appropriate.
+- Apply explicit limits for execution time, steps, retries, concurrency and resource consumption.
+- Provide preview, approval checkpoints, pause, cancellation, execution history and actionable failure reporting.
+- Use idempotency keys, deduplication or equivalent safeguards for retried external operations. Do not promise exactly-once effects where external systems cannot guarantee them.
+- Respect resource-manager priorities; defer nonessential automation during Gaming Mode or resource pressure.
+- Workflow learning may propose reusable procedures, but saving or activating learned workflows remains subject to the approved memory-governance and user-review rules.
+
+### Not decided
+
+Workflow definition format, scheduler implementation, event transport, persistence schema, trigger catalogue, retry policy details and automation UI remain open.
+
+
+## ADR-014 — Open, capability-based plugin and integration ecosystem
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Provide an open plugin ecosystem with a public community registry and support for third-party and locally developed extensions, governed by explicit capability declarations, trust verification, isolation and central permission enforcement.
+
+### Approved behaviour
+
+- Plugins declare identity, publisher, version, dependencies, requested capabilities, network needs, resource requirements and permission requirements through a manifest.
+- Support publisher verification, package integrity checks, signatures and provenance tracking. Clearly distinguish verified, community and locally developed/unverified extensions; verification is not a guarantee that software is harmless.
+- Plugin installation does not grant blanket access. Every privileged operation is evaluated by the central permission broker under the user's grants and all applicable data/workspace boundaries.
+- Run plugins in restricted, isolated and restartable workers with OS-enforced controls appropriate to their capabilities; process separation alone is not a sandbox.
+- Use the common internal tool contract with adapters for external protocols such as MCP. MCP is supported but is not the sole internal plugin or tool architecture.
+- Scope integration credentials to the relevant service, user/workspace and capability. Protect secrets from unrelated plugins and workers; never treat possession of a credential as authorization for other resources.
+- Review material permission, dependency and capability changes during plugin updates. Preserve version and provenance information and provide rollback where feasible.
+- Uninstalling or disabling an extension must revoke its credentials and grants and cancel or detach its scheduled tasks and event subscriptions.
+- Treat plugin output and package content as untrusted data, not as instructions or sources of authority.
+
+### Not decided
+
+Manifest schema, registry governance, signing infrastructure, package format, sandbox technologies, update/rollback mechanics, plugin SDK, compatibility policy and review/moderation operations remain open.
+
+
+## ADR-015 — Local-first synchronization, backup and portability
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Keep the platform fully useful locally and support opt-in synchronization through either a managed service or a self-hosted deployment. Use end-to-end encryption for private synchronized data, with separate controlled key-sharing for explicitly shared workspace data. Treat synchronization, backup and export/import as distinct capabilities.
+
+### Synchronization
+
+- Sync is optional; local operation must remain functional offline and without a hosted account.
+- Support both an optional managed synchronization service and self-hosted synchronization using the same interoperable architecture.
+- Encrypt private data on authorized devices before transmission so the synchronization service does not need plaintext access.
+- Keep user-private and workspace-shared data under distinct authorization and key boundaries. Workspace sharing requires explicit membership and controlled key distribution.
+- Support device enrollment, device revocation and documented recovery procedures for lost devices or keys.
+- Resolve safe structured changes automatically where reliable; preserve version history and surface meaningful conflicts for user resolution. Do not rely on timestamp-only last-write-wins where it could silently discard meaningful edits.
+- Sync protocols must preserve ownership, provenance, versioning and authorization metadata and must not bypass the permission broker or workspace boundaries.
+
+### Backup and recovery
+
+- Provide encrypted, versioned backups with configurable retention and multiple destinations, including optional offline/offsite copies.
+- Protect backup integrity and deletion controls; support verification and regular restore testing.
+- Provide selective restoration where feasible and clearly report conflicts or data that cannot be restored.
+- Distinguish deletion from live stores and derived indexes from eventual expiration in retained backups; document retention and deletion limits honestly.
+
+### Export and import portability
+
+- Provide user-readable exports and complete backup/migration archives as distinct formats or modes.
+- Define documented, versioned formats for conversations, memory, projects, settings, automation definitions, workspace data and attachments/metadata where applicable.
+- Support full migration and selective import, with reports for unsupported or omitted data.
+- Imported plugins and executable automation remain inactive and untrusted until reviewed and explicitly authorized; importing data never silently grants permissions or activates code.
+
+### Not decided
+
+Sync protocol, managed-service operations, cryptographic protocols and key recovery design, backup storage formats, retention periods, export schemas, migration tooling, conflict-resolution algorithms and deletion guarantees remain open.
