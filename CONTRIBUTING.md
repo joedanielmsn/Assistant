@@ -29,4 +29,4 @@ The project owner develops directly on `main`. This is a deliberate single-maint
 - Record exact commands, versions, results and limitations for technical spikes.
 
 ## Implementation boundary
-Production implementation begins only after the Phase 0 exit criteria and explicit owner approval are satisfied. Planning and disposable prototypes do not independently authorize broad production implementation.
+Production implementation begins after a documented Phase 0 transition review, explicit owner approval, and a reviewed Phase 1 specification. Deferred Phase 0 risks remain explicit implementation gates; their status must never be represented as passed merely because implementation has started.
