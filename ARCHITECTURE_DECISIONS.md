@@ -188,3 +188,33 @@ Exact process topology, worker protocol, IPC transport, sandbox technologies, se
 - **Proposed / under evaluation:** researched or recommended but not yet approved.
 - **Deferred / undecided:** intentionally left open for a later decision.
 - Do not promote proposals or deferred items to approved without explicit user confirmation.
+
+
+## ADR-006 — Gaming-mode resource protection
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Gaming Mode uses aggressive resource protection to prioritize the game while retaining an optional minimal assistant capability on the CPU.
+
+### Approved behaviour
+
+- Avoid GPU inference during Gaming Mode and release assistant GPU/model allocations when needed so the GPU remains available to the game.
+- Optionally keep a very small CPU-only model, with an initial target range around 0.4B–0.8B parameters. Actual model selection depends on quality, memory use, runtime support and tool-use reliability.
+- Preserve basic web search and selected lightweight tools where practical.
+- Apply strict CPU and RAM budgets so assistant activity does not materially compete with the game.
+- Pause or defer nonessential background work such as indexing, maintenance, model downloads and nonessential automations.
+- Restore normal scheduling and model availability when Gaming Mode ends.
+
+### Implementation guidance
+
+- Do not rely on a tiny language model as the sole tool router or security authority. Use deterministic routing, schemas, validation and the central permission broker for tool execution.
+- Resource protection must be adaptive: the assistant should not assume that a fixed CPU/RAM allowance is safe for every game or machine.
+- Provide a reliable way to enter and leave Gaming Mode, and recover gracefully if a game exits unexpectedly or a mode transition is interrupted.
+- Keep essential safety, user control and explicitly permitted lightweight functions available.
+
+### Not decided
+
+Exact CPU/RAM budgets, model/runtime choice, tool allowlist, game detection mechanism and transition implementation remain subject to hardware testing and implementation research.
