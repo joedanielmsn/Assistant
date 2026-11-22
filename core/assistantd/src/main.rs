@@ -28,7 +28,7 @@ const MAX_FRAME_BYTES: usize = 4 * 1024;
 const MAX_CONNECTIONS: usize = 32;
 const CONNECTION_DEADLINE: Duration = Duration::from_secs(5);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Request {
     version: u16,
