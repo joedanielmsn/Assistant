@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Architecture direction consolidated through ADR-035; Phase 0 engineering preparation and technical validation in progress; production implementation has not started.
+**Status:** Architecture direction consolidated through ADR-035; Phase 0 transition reviewed with explicit deferred risks; Phase 1 secure local core prototype started.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
