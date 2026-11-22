@@ -32,6 +32,7 @@ Deliverables:
 - Define versioned API, worker protocol and plugin-manifest schema conventions.
 - Create a threat-model register and data-classification catalogue.
 - Perform technical spikes for SQLCipher + rusqlite + FTS5, SQLx/PostgreSQL, local IPC, Wasmtime, native sandbox profiles, Qt packaging and Secure Boot.
+- Track prototype outcomes and pass/fail gates in [Phase 0 Technical Spikes](./PHASE_0_TECHNICAL_SPIKES.md).
 - Establish the licensing inventory process; do not select the core licence until the full dependency and distribution review.
 
 Exit criteria:
