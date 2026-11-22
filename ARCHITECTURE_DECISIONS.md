@@ -1337,3 +1337,26 @@ References: [GNU GRUB Secure Boot documentation](https://www.gnu.org/software/gr
 ### Not decided
 
 Exact GRUB build/configuration, shim package/source, MOK ownership and custody, module-signing policy, installer media chain, snapshot tooling and kernel/initramfs layout require prototype and hardware validation.
+
+
+## ADR-034 — Cloud inference privacy and data-disclosure policy
+
+**Status:** Approved default policy  
+**Date:** 2026-11-22
+
+- Local-only inference is the default until the user explicitly configures a cloud-use mode.
+- The configurable modes from ADR-023 remain available: explicit per-task use, confirmation-before-use, or policy-governed automatic fallback.
+- Automatic cloud fallback is disabled until the user enables it. Enabling it must disclose the applicable providers, data classes, scopes and conditions.
+- Before sending content to a provider, the core evaluates user/workspace policy, sensitivity labels, provider allowlists, task scope and whether the data includes screen, voice, credentials or other sensitive material.
+- Sensitive conversations/projects/workspaces are blocked from cloud transmission unless the user has explicitly enabled cloud access for that scope. A general provider setting cannot silently override a stricter scope policy.
+- Screen captures, extracted desktop content, voice recordings and credentials are never included in cloud requests by default. Each requires its own explicit capability/policy.
+- Show the user which provider/model will receive the request and the relevant content categories before first use or whenever the provider/scope changes materially.
+- Cloud credentials are stored in the OS credential vault or protected server secret store and are never exposed to model workers or plugins.
+- Provider responses and tool outputs remain untrusted data and cannot change permission or privacy policy.
+- Explain that provider-side retention, training and processing are governed by that provider's terms and cannot be guaranteed by the local assistant. Use providers/configurations that meet the user's selected privacy requirements.
+- Background tasks cannot begin cloud transmission merely because a provider is configured; they must retain an explicit owner-scoped cloud authorization and revalidate it when required.
+- Cloud usage is a functional user-requested feature, not telemetry. It must not become an analytics or diagnostics channel.
+
+### Not decided
+
+Exact provider adapter schemas, per-provider privacy metadata, UI disclosure format, enterprise policy controls and provider-specific retention documentation remain implementation specifications.
