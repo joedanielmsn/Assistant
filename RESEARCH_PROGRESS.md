@@ -491,3 +491,14 @@ Recorded 22 November 2026:
 - Cloud requests are user-authorized product traffic, not telemetry.
 
 See ADR-034 and Masterplan Section 48.
+
+
+### No-telemetry and diagnostics policy — ADR-035
+
+Recorded 22 November 2026:
+- No analytics, usage tracking, behavioural profiling, remote crash reporting or automatic diagnostic uploads.
+- Diagnostics remain local by default; user-controlled preview/export is allowed.
+- Functional network requests for configured sync, cloud inference, updates and plugin/model downloads are disclosed and are not telemetry.
+- Server audit records remain narrowly scoped and separate from product analytics.
+
+See ADR-035 and Masterplan Section 49.
