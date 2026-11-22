@@ -14,7 +14,7 @@
 | Multi-user architecture | Approved | Support personal per-OS-user installations and shared multi-user servers, with explicit identities/workspaces and strict private-data boundaries |
 | Data ownership and persistence | Approved | Four logical scopes: installation, user, workspace and task/session; private by default, explicit sharing, owner-scoped background tasks and lifecycle controls |
 | Central permission broker | Approved | Hybrid RBAC + ABAC; risk-based approval; user-wide grants bounded by user/data ownership; configurable lifetimes; deny-by-default, previews, audit, cancellation, revocation and emergency stop |
-| Modular core and selective process isolation | Approved | Modular main core; isolate components only for independent lifecycle/resource needs, untrusted or sensitive work, failure containment, or specialised runtime/hardware requirements |
+| Modular core and selective process isolation | Approved | Modular main core; isolate components only for independent lifecycle/resource needs, untrusted or sensitive work, failure containment, or specialised runtime/hardware requirements |\n| Gaming-mode resource protection | Approved | Aggressively prioritize the game; avoid assistant GPU inference, optionally retain a tiny CPU-only model and lightweight tools, enforce adaptive CPU/RAM budgets, and pause nonessential background work |
 
 See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
 
@@ -43,7 +43,7 @@ Define how desktop and other clients authenticate to the authoritative core, how
 - Authentication and session technology.
 - Database, vector store and concrete tenancy strategy.
 - Encryption and key management.
-- Resource scheduler implementation.
+- Exact resource scheduler implementation and workload budgets.
 - Exact retention, backup and deletion periods.
 - Licensing (intentionally deferred; revisit at architecture finalisation and before public release).
 
