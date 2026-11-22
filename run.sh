@@ -186,8 +186,12 @@ start_core() {
 }
 
 run_app() {
-    if [[ -z "${XDG_RUNTIME_DIR:-}" || ! -d "$XDG_RUNTIME_DIR" ]]; then
+    if [[ -z "${XDG_RUNTIME_DIR:-}" ]]; then
         printf 'XDG_RUNTIME_DIR is unavailable. Launch from your normal desktop session.\n' >&2
+        exit 1
+    fi
+    if [[ ! -d "$XDG_RUNTIME_DIR" ]]; then
+        printf 'XDG_RUNTIME_DIR does not point to an existing directory.\n' >&2
         exit 1
     fi
     check_context
