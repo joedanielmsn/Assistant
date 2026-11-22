@@ -25,6 +25,7 @@ This roadmap sequences implementation so that identity, authorization, privacy a
 
 Deliverables:
 - Reconcile ADR-001 through ADR-035 and maintain a traceability matrix from requirements to components, tests and release gates.
+- Maintain the detailed [Phase 0 requirements traceability matrix](./PHASE_0_TRACEABILITY.md) and keep it synchronized with architecture and implementation changes.
 - Define monorepo layout, branch/review policy, coding standards, supported toolchains and dependency update policy.
 - Establish Linux/Windows CI, formatting, linting, static analysis, unit tests, integration-test scaffolding, secret scanning and SBOM generation.
 - Define versioned API, worker protocol and plugin-manifest schema conventions.
