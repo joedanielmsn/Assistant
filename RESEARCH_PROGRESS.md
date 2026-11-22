@@ -1,10 +1,12 @@
 # Research Progress — Local Assistant 2.0
 
 **Last updated:** 22 November 2026  
-**Current stage:** Stage 1A — Architecture discovery  
-**Implementation status:** Not started. No technology stack selected.
+**Current stage:** Phase 0 — Engineering preparation  
+**Implementation status:** Not started. Initial technology architecture approved through ADR-035; compatibility/security validation and engineering preparation remain.
 
 ---
+
+> **Current status update — 22 November 2026:** The architecture direction is consolidated through ADR-035. Phase 8 is complete at the architecture-direction level; the project is now in Phase 0 engineering preparation. No production implementation has started. Earlier stage and Phase 8 entries below preserve the research history and should be read as historical snapshots where they conflict with this update. Current execution documents: [Implementation Roadmap](./IMPLEMENTATION_ROADMAP.md), [Phase 0 Traceability](./PHASE_0_TRACEABILITY.md), [Repository Layout](./REPOSITORY_LAYOUT.md), [Technical Spikes](./PHASE_0_TECHNICAL_SPIKES.md), and [Engineering Baseline](./ENGINEERING_BASELINE.md).
 
 ## Approved
 
