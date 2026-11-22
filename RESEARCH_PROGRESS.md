@@ -16,6 +16,7 @@
 | Central permission broker | Approved | Hybrid RBAC + ABAC; risk-based approval; user-wide grants bounded by user/data ownership; configurable lifetimes; deny-by-default, previews, audit, cancellation, revocation and emergency stop |
 | Modular core and selective process isolation | Approved | Modular main core; isolate components only for independent lifecycle/resource needs, untrusted or sensitive work, failure containment, or specialised runtime/hardware requirements |
 | Gaming-mode resource protection | Approved | Aggressively prioritize the game; avoid assistant GPU inference, optionally retain a tiny CPU-only model and lightweight tools, enforce adaptive CPU/RAM budgets, and pause nonessential background work |
+| Core/client communication and IPC | Approved | Versioned HTTP-compatible API plus WebSocket events; Linux Unix-domain sockets; Windows named pipes; local identity verification; remote access opt-in via LAN or user-configured VPN/tunnel; built-in accounts with passkeys and optional external identity providers |
 
 See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
 
@@ -24,8 +25,10 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 | Topic | Current understanding | Status |
 |---|---|---|
 | Overall architecture | Modular core with selectively isolated workers; avoid unnecessary microservices overhead | Approved; see ADR-005 |
-| Core/client model | One authoritative core; desktop, voice, companion and other interfaces act as clients | Proposed; awaiting decision |
-| IPC | Linux Unix-domain sockets/peer credentials, Windows named pipes/ACLs, structured RPC options researched | No transport selected |
+| Core/client model | One authoritative core; desktop, CLI, browser, companion and future clients use a common versioned API | Approved; see ADR-007 |
+| Client API and events | HTTP-compatible structured API plus WebSocket event stream | Approved direction; concrete libraries/schema deferred |
+| Local IPC | Linux Unix-domain sockets with peer checks; Windows named pipes with explicit ACLs; local connections are not implicitly trusted | Approved direction; exact paths/ACL implementation deferred |
+| Remote access and authentication | Remote access off by default; optional LAN/VPN/tunnel; built-in accounts with passkeys and optional external identity providers | Approved direction; concrete protocols/session implementation deferred |
 | Process/security boundaries | Main core for orchestration and policy; separate workers only where lifecycle, isolation, failure-containment or specialised-runtime needs justify them | Direction approved; exact topology and sandboxing remain open |
 | Data storage isolation | Hybrid strategy based on sensitivity and operational requirements | Direction approved; concrete implementation undecided |
 
@@ -40,8 +43,8 @@ Define adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, ga
 - Technology stack and programming languages.
 - Desktop/UI framework.
 - Backend/runtime architecture details.
-- IPC transport and remote protocol.
-- Authentication and session technology.
+- Concrete IPC paths/ACLs, API schema and protocol implementation.
+- Authentication/passkey protocols, session/token technology and remote-access integration.
 - Database, vector store and concrete tenancy strategy.
 - Encryption and key management.
 - Exact resource scheduler implementation and workload budgets.
@@ -61,3 +64,28 @@ Define adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, ga
 7. Ask the user only about consequential product/design choices, significant performance trade-offs, or decisions with multiple genuinely comparable options. Explain these briefly and present clear choices.
 8. Never treat a consequential user-facing or product-direction choice as approved without the user's input.
 9. Keep the GitHub repository as the project documentation source of truth.
+
+
+## Phase 1 — Core communication and IPC
+
+**Status:** Complete — architecture direction approved on 22 November 2026.
+
+Approved:
+- One authoritative core; desktop, CLI, browser, companion and future clients communicate through a common versioned API.
+- Versioned HTTP-compatible request/response API with WebSocket events for streaming, progress, state changes and notifications.
+- Linux local IPC uses Unix domain sockets with OS peer-identity checks and restrictive permissions.
+- Windows local IPC uses named pipes with explicit access-control configuration and client identity checks.
+- Local IPC is not implicitly trusted; establish an authenticated client session and authorize every operation.
+- Remote access is disabled by default; optional LAN access and secure remote access through a user-configured VPN or tunnel.
+- Shared-server authentication uses built-in accounts with passkey support and optional external identity-provider integration.
+- The core remains responsible for trusted identity, authorization and permission-broker enforcement for client and worker operations.
+
+Deferred implementation details:
+- HTTP/WebSocket libraries, API schema, socket/pipe paths and ACLs.
+- Passkey and external identity-provider protocols, session/token lifecycle.
+- LAN exposure controls, VPN/tunnel integration and API compatibility policy.
+- Any specialised internal worker transport.
+
+## Next phase
+
+**Phase 2 — Resource manager and scheduling.** Research adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, gaming-mode transitions, foreground responsiveness and fair scheduling across users. Bring only major product/performance trade-offs to the user at the end of the phase.
