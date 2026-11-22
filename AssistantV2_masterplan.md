@@ -1807,3 +1807,15 @@ ADR-031 defines:
 - Exact bootloader, key enrollment, partition layout and snapshot tooling remain implementation validation tasks.
 
 See ADR-030 and ADR-031 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+## 47. Encrypted database driver and Linux bootloader defaults — 22 November 2026
+
+- Personal desktop persistence uses rusqlite with bundled SQLCipher and FTS5 enabled; synchronous operations run on a bounded blocking pool.
+- Shared-server persistence uses SQLx with PostgreSQL. SQLx SQLite is not enabled in the same core binary unless later compatibility work justifies it.
+- Test the exact shipped SQLCipher build, FTS5, migrations, encrypted backup/restore and WAL behaviour on Linux and Windows.
+- GRUB is the initial Linux distribution bootloader default because of broad compatibility and Btrfs snapshot boot integration.
+- Secure Boot verification/lockdown must remain enabled when Secure Boot is active. Prefer a signed shim/MOK or similarly reviewed chain that preserves existing firmware keys; exact enrollment and signing are validation tasks.
+- Btrfs snapshot boot entries must be tested for kernel/initramfs consistency and boot recovery.
+
+See ADR-032 and ADR-033 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
