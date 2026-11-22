@@ -42,15 +42,16 @@ void ChatController::appendMessage(const QString &role, const QString &content)
 QJsonArray ChatController::boundedHistory() const
 {
     QJsonArray result;
-    int totalChars = 0;
+    int totalBytes = 0;
     int count = 0;
     for (qsizetype i = m_history.size() - 1; i >= 0 && count < 8; --i) {
         const QJsonObject item = m_history.at(i).toObject();
         const QString content = item.value(QStringLiteral("content")).toString();
-        if (totalChars + content.size() > 12000)
+        const int messageBytes = content.toUtf8().size();
+        if (totalBytes + messageBytes > 11000)
             break;
         result.prepend(item);
-        totalChars += content.size();
+        totalBytes += messageBytes;
         ++count;
     }
     return result;
@@ -61,8 +62,8 @@ void ChatController::sendMessage(const QString &rawText)
     const QString text = rawText.trimmed();
     if (m_busy || text.isEmpty())
         return;
-    if (text.size() > 8000) {
-        setStatusText(QStringLiteral("Please keep each message under 8,000 characters."));
+    if (text.toUtf8().size() > 10000) {
+        setStatusText(QStringLiteral("Please keep each message under 10,000 UTF-8 bytes."));
         return;
     }
 

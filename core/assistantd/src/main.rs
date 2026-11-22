@@ -145,6 +145,7 @@ struct ServerState {
     owner_uid: u32,
     started_at: Instant,
     broker: PermissionBroker,
+    agent_slots: Semaphore,
 }
 
 struct SocketCleanup {
@@ -338,7 +339,18 @@ fn audit(uid: u32, request_id: &str, operation: &str, decision: &str) {
 }
 
 
-async fn run_agent_chat(payload: Option<Value>) -> Result<Value, (String, String)> {
+async fn run_agent_chat(
+    payload: Option<Value>,
+    agent_slots: &Semaphore,
+) -> Result<Value, (String, String)> {
+    let _agent_permit = match timeout(FRAME_DEADLINE, agent_slots.acquire()).await {
+        Ok(Ok(permit)) => permit,
+        _ => return Err((
+            "resource_busy".to_owned(),
+            "A local model request is already running; try again shortly".to_owned(),
+        )),
+    };
+
     let payload = payload.ok_or_else(|| (
         "invalid_request".to_owned(),
         "Chat requests must include a messages array".to_owned(),
@@ -549,7 +561,7 @@ async fn handle_connection(mut stream: UnixStream, state: Arc<ServerState>) -> i
             "uptime_seconds": state.started_at.elapsed().as_secs(),
             "protocol_version": PROTOCOL_VERSION
         }),
-        Operation::AgentChat => match run_agent_chat(request.payload).await {
+        Operation::AgentChat => match run_agent_chat(request.payload, &state.agent_slots).await {
             Ok(result) => result,
             Err((code, message)) => {
                 return write_response(
@@ -634,6 +646,7 @@ async fn serve() -> Result<(), Box<dyn Error>> {
         owner_uid,
         started_at: Instant::now(),
         broker: PermissionBroker { owner_uid },
+        agent_slots: Semaphore::new(1),
     });
 
     let result = run_server(listener, state).await;
