@@ -277,10 +277,7 @@ where
             }
             frame.extend_from_slice(&chunk[..newline]);
 
-            if chunk[newline + 1..count]
-                .iter()
-                .any(|byte| !byte.is_ascii_whitespace())
-            {
+            if newline + 1 != count {
                 return Err(io_error(
                     io::ErrorKind::InvalidData,
                     "only one request frame is accepted per connection",
@@ -600,5 +597,32 @@ mod tests {
         assert!(!validate_request_id(""));
         assert!(!validate_request_id(&"a".repeat(65)));
         assert!(!validate_request_id("request with spaces"));
+    }
+
+    #[tokio::test]
+    async fn frame_reader_accepts_one_bounded_line() {
+        let (mut writer, mut reader) = tokio::io::duplex(32);
+        writer.write_all(b"{\\"version\\":1}\\n").await.unwrap();
+        let frame = read_frame(&mut reader).await.unwrap();
+        assert_eq!(frame, br#"{\"version\":1}"#);
+    }
+
+    #[tokio::test]
+    async fn frame_reader_rejects_oversized_input() {
+        let (mut writer, mut reader) = tokio::io::duplex(MAX_FRAME_BYTES + 8);
+        writer
+            .write_all(&vec![b'x'; MAX_FRAME_BYTES + 1])
+            .await
+            .unwrap();
+        let error = read_frame(&mut reader).await.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    }
+
+    #[tokio::test]
+    async fn frame_reader_rejects_multiple_frames_in_one_read() {
+        let (mut writer, mut reader) = tokio::io::duplex(32);
+        writer.write_all(b"one\\ntwo\\n").await.unwrap();
+        let error = read_frame(&mut reader).await.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
     }
 }
