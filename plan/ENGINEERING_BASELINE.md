@@ -17,22 +17,22 @@
 - Every feature includes tests, documentation and failure behaviour.
 - No telemetry, automatic diagnostic uploads or hidden hosted-service dependency.
 
-## 2. Branch and review workflow
+## 2. Main-branch development workflow
 
-**Proposed default:** protected `main` branch with short-lived topic branches and pull requests.
+**Project decision:** The owner develops directly on `main` in this single-maintainer repository. A separate implementation repository and mandatory pull-request workflow are not used.
 
-- Keep `main` buildable and releasable.
-- Use short-lived branches named by purpose, such as `feat/permission-policy`, `fix/sqlcipher-build` or `docs/worker-contract`.
-- Every change is submitted as a pull request with a concise purpose, scope, tests and risk summary.
-- Required CI checks must pass before merge.
-- Squash merge is the default to keep the main history readable.
-- Do not force-push or rewrite shared release history.
-- Security-sensitive changes require explicit review of the affected trust boundary and tests.
-- Changes to authorization, cryptography, sandboxing, privileged helpers, signing, update verification or data isolation require a dedicated security review checklist.
+- Keep `main` buildable and coherent.
+- Make small, focused, atomic commits with descriptive messages.
+- Run relevant formatting, lint, build and test checks before committing.
+- Record test commands, outcomes, limitations and related ADR/requirement references.
+- Never force-push or rewrite shared history; use corrective commits or a documented revert.
+- Keep disposable spike implementations outside production source directories.
+- Security-sensitive changes require focused negative tests and a documented security checklist.
+- Changes to authorization, cryptography, sandboxing, privileged helpers, signing, update verification or data isolation must remain narrowly scoped and receive extra scrutiny.
 - Generated files must identify their source and be reproducible.
-- Emergency fixes still require recorded tests and retrospective review.
+- External contributors may use pull requests if the project later accepts outside contributions.
 
-For a single-maintainer early stage, GitHub's branch protection and required CI checks should be used where available. A second human reviewer should be required before public stable releases and for high-risk security changes when one is available; automated checks are not a substitute for independent review.
+Direct commits do not lower testing or security requirements. Automated CI should run on every main-branch commit. Independent review remains desirable for high-risk security changes and is required before public stable releases when a qualified reviewer is available.
 
 ## 3. Coding standards
 
@@ -107,7 +107,7 @@ Tests must not rely on real user data, production credentials or live external s
 
 ## 6. CI pipeline proposal
 
-### Pull request checks
+### Commit and CI checks
 
 1. Validate formatting and source hygiene.
 2. Build Rust workspace and run unit tests.
@@ -122,7 +122,7 @@ Tests must not rely on real user data, production credentials or live external s
 
 ### Main-branch checks
 
-- Repeat required pull request checks on the merged commit.
+- Run the required checks against every commit pushed to `main`.
 - Build versioned development artifacts.
 - Generate SBOM and provenance metadata.
 - Run extended integration and migration tests.
@@ -190,4 +190,4 @@ These are implementation setup choices, not unresolved product-direction questio
 - Exact Windows installer and Linux package formats.
 - Branch-protection settings available under the selected GitHub repository configuration.
 
-The engineering baseline should be reviewed once before code bootstrap and then updated through normal pull requests.
+The engineering baseline is reviewed before code bootstrap and updated through focused commits directly on `main`.

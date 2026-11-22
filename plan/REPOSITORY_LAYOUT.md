@@ -3,7 +3,7 @@
 **Status:** Phase 0 engineering proposal; not yet an implementation authorization  
 **Date:** 2026-11-22  
 **Governing decision:** ADR-022  
-**Architecture source of truth:** `AssistantV2` planning repository
+**Architecture and implementation repository:** `joedanielmsn/AssistantV2`
 
 ## 1. Repository boundaries
 
@@ -14,12 +14,13 @@ The project should use two independently built and released code repositories:
 
 The repositories share versioned interfaces and released platform artifacts. The distribution repository must not vendor or fork the platform's core implementation as its normal integration method.
 
-The existing `joedanielmsn/AssistantV2` repository remains the architecture and planning source of truth during Phase 0. This proposal does not silently convert it into a code repository or create either code repository. Repository creation and code bootstrap remain explicit execution steps after Phase 0 approval.
+The existing `joedanielmsn/AssistantV2` repository is the single platform monorepo. All planning and architecture material lives in its top-level `plan/` directory; implementation code, tests, contracts and build configuration live at the repository root. Development proceeds directly on `main` using focused commits. Production implementation still begins only after the Phase 0 exit gate and explicit owner approval. The Linux distribution remains a separate repository, to be established when Phase 9 is scheduled.
 
 ## 2. Platform monorepo — proposed top-level structure
 
 ```text
-assistant-platform/
+AssistantV2/
+├── plan/                 # Architecture, roadmap, Phase 0 and engineering records
 ├── Cargo.toml
 ├── Cargo.lock
 ├── rust-toolchain.toml
@@ -248,6 +249,6 @@ These can be selected during engineering preparation without changing the approv
 - Exact Linux package formats and Windows installer technology.
 - GitHub Actions runner sizing and any self-hosted hardware runners.
 - Artifact retention, cache policy and release provenance configuration.
-- Exact repository names and whether the platform monorepo should be created as a new repository or established from the existing planning repository.
+- Exact Rust crate boundaries after dependency prototypes.
 
-The last item is a repository-governance choice and should be explicitly settled before code bootstrap. Until then, this document defines the target layout without creating or moving repositories.
+The platform repository choice and development workflow are settled: use `joedanielmsn/AssistantV2`, keep planning documents under `plan/`, place implementation at the root, and commit directly to `main`. The separate Linux distribution repository is deferred until Phase 9.

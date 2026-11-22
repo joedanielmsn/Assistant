@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Last updated:** 22 November 2026  
-**Status:** Requirements discovery completed; architecture discovery in progress. Deployment profiles, multi-user direction, data ownership, central permission-broker policy, modular-core/selective-worker architecture and core/client communication and adaptive resource-management direction approved; implementation technologies remain unselected.
+**Status:** Architecture direction consolidated through ADR-035; Phase 0 engineering preparation and technical validation in progress; production implementation has not started.
 
 > This document is the central source of truth for the Local Assistant 2.0 project. Upload it at the beginning of future conversations to restore project context. Update it whenever major decisions change.
 
