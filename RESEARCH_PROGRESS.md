@@ -30,9 +30,9 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 
 ## Next research topic
 
-**Core/client communication and IPC**
+**Resource manager and scheduling**
 
-Define how desktop and other clients authenticate to the authoritative core, how requests carry trusted user/workspace context, and how local and remote clients communicate safely across Linux, Windows and future headless/server deployments. Compare IPC/RPC options without prematurely selecting a transport.
+Define adaptive CPU/RAM/GPU/VRAM budgeting, task priorities, model lifecycle, gaming-mode transitions, foreground responsiveness and fair scheduling across users. Validate the approved Gaming Mode direction against the development laptop. Routine scheduling and safety defaults will be selected autonomously; only major performance/product trade-offs will be brought to the user.
 
 ## Deferred / undecided
 
@@ -59,4 +59,4 @@ Define how desktop and other clients authenticate to the authoritative core, how
 6. Use an autonomy-first decision process: the assistant should choose sound defaults for routine implementation, security and management details, and document the rationale without asking for approval of every detail.
 7. Ask the user only about consequential product/design choices, significant performance trade-offs, or decisions with multiple genuinely comparable options. Explain these briefly and present clear choices.
 8. Never treat a consequential user-facing or product-direction choice as approved without the user's input.
-7. Keep the GitHub repository as the project documentation source of truth.
+9. Keep the GitHub repository as the project documentation source of truth.
