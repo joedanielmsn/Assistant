@@ -18,6 +18,19 @@
 | Gaming-mode resource protection | Approved | Aggressively prioritize the game; avoid assistant GPU inference, optionally retain a tiny CPU-only model and lightweight tools, enforce adaptive CPU/RAM budgets, and pause nonessential background work |
 | Core/client communication and IPC | Approved | Versioned HTTP-compatible API plus WebSocket events; Linux Unix-domain sockets; Windows named pipes; local identity verification; remote access opt-in via LAN or user-configured VPN/tunnel; built-in accounts with passkeys and optional external identity providers |
 | Resource management and scheduling | Approved | Hybrid fixed safety limits plus adaptive priority scheduling; Normal/Performance/Gaming/Battery-Quiet modes; pressure-aware model unloading with configurable idle timeouts; weighted fair per-user scheduling and concurrency limits |
+| Computer interaction and tool execution | Approved | Layered strategy: native APIs, accessibility, semantic browser automation, then visual interaction; common internal tool interface with MCP adapters; broad host access still brokered per operation; separate assistant browser profile; operation-level undo and checkpoints |
+| Desktop experience and awareness | Approved | One primary desktop app with optional dashboard/tray/notifications/companion; continuous screen awareness with persistent indicators, immediate pause/disable, exclusions, transient processing by default and explicit permission for retention/cloud sharing; push-to-talk default with optional wake word |
+
+
+## Additional approved architecture areas — 22 November 2026
+
+The user approved the computer-interaction and desktop-experience directions recorded in ADR-009 and ADR-010 and Masterplan Sections 28–29.
+
+Key user selections:
+- Broad host access rather than a fixed folder allowlist, with every operation still subject to central permission-broker evaluation and execution safeguards.
+- Continuous screen awareness while the assistant is running, with a user-configurable opt-out. This is not covert recording; visible indicators, immediate controls, exclusions, transient processing by default and explicit retention/cloud-sharing permissions are mandatory.
+
+Other choices in these areas follow the assistant's recommendations. Concrete libraries, UI frameworks, sandbox technologies and platform adapters remain undecided.
 
 See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
 
