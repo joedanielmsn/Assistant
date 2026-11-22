@@ -1669,3 +1669,54 @@ Use fast pull-request checks, full platform integration builds, controlled GPU v
 - Release artifacts should be traceable to reviewed source revisions and dependency/toolchain inputs.
 
 Exact directory layout, workflow definitions, package formats, signing operations, installer choice, versioning and rollback mechanics remain detailed design tasks.
+
+
+## 42. Final cross-cutting product and architecture decisions — 22 November 2026
+
+ADR-023 records the remaining user decisions from the final architecture questionnaire.
+
+### Identity and deployment
+- Personal desktop uses OS identity by default, with optional stronger authentication for sensitive operations.
+- Shared servers initially use built-in accounts/passkeys and target Linux. External identity providers are a later extension; Windows server support is deferred.
+
+### Privacy and data protection
+- Application-level encryption is enabled by default alongside OS protections.
+- User-controlled master password is the primary unlock choice; a recovery key is the selected lost-key recovery mechanism.
+- Retention is configurable by data category.
+- Users can define sensitivity levels and policies for conversations, projects, folders and workspaces.
+
+### Cloud, models and synchronization
+- Cloud inference behaviour is configurable: explicit-only, policy-governed automatic fallback or confirmation-before-use.
+- Support OpenAI-compatible APIs, provider-specific adapters, custom endpoints and self-hosted inference servers.
+- Synchronization is self-hosted; a project-operated managed sync service is not currently planned.
+- Safe changes merge automatically; meaningful conflicts are surfaced.
+- Model routing is automatic by default with manual overrides. Support assistant-managed and compatible external model runtimes.
+- Provide built-in, user-created and community specialists. Autonomy is configurable by agent, tool and workspace, with risk-based defaults.
+
+### Hardware, plugins and desktop
+- NVIDIA is the first inference-validation priority; AMD and Intel remain support goals requiring validation.
+- Resource controls combine automatic adaptation with advanced manual limits and workload profiles.
+- Gaming Mode supports automatic detection and manual control.
+- Plugin trust levels include verified, community and local; support official and third-party registries.
+- Maintain official integrations alongside community extensions.
+- The companion supports both floating-companion and minimal-control-panel appearances.
+- Voice supports both conventional speech input/output and real-time conversational interaction.
+- Application metadata awareness and screen-content awareness remain independently configurable.
+
+### Linux distribution
+- Begin as a distinct CachyOS-derived distribution, with a long-term transition to a fully independent distribution identity.
+- Substantially redesign KDE Plasma; provide beginner and advanced installer modes.
+- Offer Btrfs and ext4, recommending Btrfs with snapshots.
+- Use conventional curated rolling package updates, retaining testing/stable promotion and snapshot/package recovery rather than adopting image-based atomic updates.
+
+### Governance and licensing
+- No telemetry.
+- Provide private vulnerability reporting/coordinated disclosure and a public issue tracker.
+- Make audit detail and retention configurable.
+- Defer core licensing until a project-wide compatibility and dependency review. Allow compatible open-source licences for plugins.
+- Open-source defaults with clearly labelled optional proprietary applications and drivers.
+
+### Remaining implementation and validation work
+This approval does not close detailed design. The next consolidation pass must still specify and validate cryptographic key derivation/storage/recovery, secure unlock and unattended-start behaviour, database isolation and encryption, threat models and sandbox enforcement, data deletion/retention guarantees, self-hosted sync protocol and conflict handling, cloud disclosure controls, GPU/runtime compatibility, plugin registry/signing governance, installer and conventional rolling-update recovery, and the project-wide licence/dependency audit.
+
+See ADR-023 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
