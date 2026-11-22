@@ -477,3 +477,17 @@ Remaining:
 - Verify Cargo feature unification and native library linkage in the real workspace.
 - Validate SQLCipher FTS5, backup/restore and WAL across platforms.
 - Prototype GRUB snapshot boot and Secure Boot end-to-end, including kernel and module updates.
+
+
+### Cloud inference privacy policy — ADR-034
+
+Recorded 22 November 2026:
+- Local-only is the default until cloud use is configured.
+- Automatic cloud fallback remains disabled until explicitly enabled.
+- Sensitivity and workspace restrictions override global provider settings.
+- Screen, voice and credential content are excluded from cloud transmission by default and require separate explicit authorization.
+- Cloud provider secrets are protected and unavailable to plugins/workers.
+- Provider-side retention/training cannot be guaranteed by the assistant and must be disclosed.
+- Cloud requests are user-authorized product traffic, not telemetry.
+
+See ADR-034 and Masterplan Section 48.
