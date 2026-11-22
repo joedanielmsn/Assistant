@@ -1290,3 +1290,50 @@ References: [Calamares](https://calamares.io/about/), [Calamares partitioning gu
 ### Not decided
 
 Exact Calamares modules, partition/subvolume layout, bootloader, UEFI key enrollment model, LUKS2 defaults/crypt parameters, Secure Boot signing custody and snapshot tooling require prototype validation before distribution implementation.
+
+
+## ADR-032 — Database driver split for encrypted desktop and shared-server storage
+
+**Status:** Approved initial implementation direction  
+**Date:** 2026-11-22
+
+### Decision
+
+Refine ADR-021's SQLx candidate as follows:
+- Personal desktop SQLite uses rusqlite with a bundled SQLCipher build and FTS5 enabled.
+- Shared-server PostgreSQL uses SQLx with its PostgreSQL driver.
+- Do not enable SQLx's SQLite driver in the same core binary unless a future compatibility review proves a clear need and resolves native SQLite binding/feature unification.
+- Run synchronous rusqlite operations on a bounded blocking worker pool; never block Tokio executor threads with database I/O.
+- Keep database repository/domain interfaces independent of driver-specific types.
+- Pin and patch the SQLCipher/SQLite and crypto-provider versions. Verify the actual shipped cipher version at startup/release test and fail clearly if encryption is unavailable.
+- Disable SQLite extension loading unless a narrowly reviewed built-in extension requires it.
+- Compile and test FTS5 in the exact SQLCipher builds for Linux and Windows; test migrations, encrypted backup/restore, WAL/checkpoint behaviour and corruption recovery.
+
+Rationale: SQLCipher offers a documented bundled build path through rusqlite, while SQLx remains a strong fit for the asynchronous PostgreSQL backend. A split avoids making local encryption depend on an unverified native-driver combination and keeps the async core responsive.
+
+References: [rusqlite SQLCipher features](https://docs.rs/rusqlite/latest/rusqlite/), [SQLCipher build options](https://github.com/sqlcipher/sqlcipher), [SQLx SQLite driver notes](https://docs.rs/sqlx/latest/sqlx/sqlite/).
+
+### Not decided
+
+Exact rusqlite/SQLCipher/OpenSSL versions, Cargo feature graph, SQLite connection pool implementation, FTS5 tokenizer/configuration, migration strategy and platform-specific crypto-provider packaging remain implementation validation tasks.
+
+## ADR-033 — Initial Linux bootloader and snapshot integration
+
+**Status:** Approved default direction; Secure Boot chain validation required  
+**Date:** 2026-11-22
+
+- Use GRUB as the initial default bootloader for the distribution.
+- Rationale: broad UEFI and legacy boot compatibility, mature recovery options and a direct integration path for Btrfs snapshot boot entries.
+- Integrate a maintained Btrfs snapshot-to-GRUB mechanism, but validate that booted snapshots use matching kernel/initramfs and that rollback does not leave EFI or boot files inconsistent.
+- Keep other bootloaders out of the initial default path; they may be evaluated later if a clear hardware or maintenance benefit emerges.
+- Secure Boot remains a supported target under ADR-031. GRUB must run with Secure Boot verification/lockdown enabled; do not disable signature validation to make unsupported modules or kernels load.
+- Prefer a signed shim/Machine Owner Key or another reviewed trust chain that preserves existing firmware keys and dual-boot compatibility. The exact enrollment/signing design remains subject to end-to-end prototype testing.
+- Kernel, bootloader and relevant boot-chain updates must be signed and verified before reboot. If signing fails, the update must report the failure and preserve a bootable known-good path.
+- Do not silently replace firmware keys or disable Secure Boot. Explain key enrollment, recovery and removal to the user.
+- Official Secure Boot support is not claimed until installation media, installed boot chain, kernel/package updates, third-party module handling and recovery all pass end-to-end tests.
+
+References: [GNU GRUB Secure Boot documentation](https://www.gnu.org/software/grub/manual/grub/grub.html), [Arch Secure Boot guidance](https://wiki.archlinux.org/title/Secure_Boot), [GRUB Btrfs snapshot integration](https://man.archlinux.org/man/grub-btrfs.8.en).
+
+### Not decided
+
+Exact GRUB build/configuration, shim package/source, MOK ownership and custody, module-signing policy, installer media chain, snapshot tooling and kernel/initramfs layout require prototype and hardware validation.
