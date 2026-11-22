@@ -346,3 +346,42 @@ The initial technology direction is approved, but detailed implementation specif
 - Design signing-key custody/rotation, package promotion and update/rollback mechanisms.
 - Validate clean builds, reproducibility, upgrades and recovery on supported Linux and Windows systems.
 - Keep licensing review scheduled for architecture finalisation and public release.
+
+
+### Final cross-cutting questionnaire — decisions recorded 22 November 2026
+
+**Status:** User decisions recorded in ADR-023; Phase 8 remains in progress pending detailed security, compatibility and implementation validation.
+
+Approved directions:
+- OS identity by default on personal desktops; optional stronger authentication for sensitive operations.
+- Built-in accounts/passkeys and Linux-only initial shared-server target; external identity providers deferred.
+- Application-level encryption enabled by default; user-controlled master password and recovery key.
+- Configurable category-specific retention and user-defined sensitivity policies.
+- Configurable cloud inference modes and broad provider/custom-endpoint compatibility.
+- Self-hosted synchronization only; safe automatic merges and surfaced conflicts.
+- Automatic model routing with manual overrides; internal and external runtime support.
+- Built-in, user-created and community specialists; configurable autonomy.
+- NVIDIA-first initial inference validation while retaining AMD/Intel support goals.
+- Automatic and manual resource/Gaming Mode controls.
+- Verified/community/local plugin trust levels, official and third-party registries, and maintained official integrations.
+- Multiple desktop companion and voice interaction modes; independently configurable metadata and screen awareness.
+- CachyOS-derived distribution initially, with a long-term independent identity; redesigned KDE, dual-mode installer, Btrfs/ext4 and conventional curated rolling updates.
+- No telemetry; private vulnerability reporting plus public issue tracking; configurable audit policies.
+- Core licence remains deferred for a project-wide review; compatible open-source plugin licences and optional clearly labelled proprietary distribution components.
+
+Important interpretation:
+- Conventional rolling updates do not eliminate the need for Btrfs snapshots, package recovery, controlled testing/stable promotion or documented rollback.
+- Master-password and recovery-key design must account for unattended desktop startup without exposing key material to workers/plugins or weakening user/workspace authorization.
+- Self-hosted sync is the approved product direction; no managed hosted sync service is currently planned.
+
+Remaining Phase 8 work:
+- Threat modelling, sandbox validation and privileged-helper review.
+- Cryptographic design, key derivation/storage/recovery, database isolation and deletion/retention guarantees.
+- Self-hosted synchronization protocol and conflict-resolution specification.
+- Cloud disclosure and sensitive-data enforcement.
+- Hardware/runtime compatibility and performance testing across supported CPU/GPU combinations.
+- Installer, conventional rolling update, snapshot/package rollback and recovery design.
+- Plugin signing, registry governance, sandbox profiles and SDK contracts.
+- Project-wide licence and dependency compatibility audit before architecture finalisation and public release.
+
+See ADR-023 and Masterplan Section 42. Implementation has not started.
