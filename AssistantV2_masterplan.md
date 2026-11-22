@@ -1634,3 +1634,38 @@ The initial core/worker/runtime technology direction is approved and recorded in
 These are approved technology directions, not completed implementation specifications. Exact versions, schemas, process lifecycle, sandbox profiles, GPU compatibility, database design, encryption, packaging, build/release engineering and licensing still require detailed work and validation.
 
 Licensing remains intentionally deferred for architecture finalisation and public-release review.
+
+## 41. Approved repository, build and release architecture — 22 November 2026
+
+ADR-022 establishes the initial build and repository direction.
+
+### Repository structure
+
+- **Platform monorepo:** Rust core, Qt 6/QML desktop, Python workers, official plugins/SDK, shared interfaces, platform packaging and developer documentation.
+- **Separate Linux distribution repository:** CachyOS-derived image/installer configuration, distribution-specific kernel/desktop changes, package definitions, repository configuration and release channels.
+
+The platform and OS share versioned components and interfaces but can be built, tested and released independently.
+
+### Build and CI direction
+
+| Component | Initial tooling |
+|---|---|
+| Rust | Cargo workspace |
+| Qt 6/QML | CMake + Ninja |
+| Python workers | uv with locked environments |
+| Linux distribution | Arch/CachyOS-compatible package tooling and PKGBUILDs |
+| CI/CD | GitHub Actions, including Linux/Windows matrices and separate hardware validation |
+
+Use fast pull-request checks, full platform integration builds, controlled GPU validation and reviewed/tagged release builds. Ordinary CI must not depend on GPU availability.
+
+### Packaging and release direction
+
+- Native Linux packages are the primary desktop/distribution integration path.
+- The distribution maintains its own signed repositories and controlled testing/stable promotion.
+- Windows packages include the required Qt deployment dependencies and separately managed core/worker components where practical.
+- Python workers use pinned, isolated environments.
+- Platform and distribution release cadences remain independent.
+- Updates require compatibility checks, staged rollout, failure reporting and documented recovery/rollback.
+- Release artifacts should be traceable to reviewed source revisions and dependency/toolchain inputs.
+
+Exact directory layout, workflow definitions, package formats, signing operations, installer choice, versioning and rollback mechanics remain detailed design tasks.
