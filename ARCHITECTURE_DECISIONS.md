@@ -288,3 +288,86 @@ Use a hybrid resource-management strategy: enforce fixed safety boundaries while
 ### Not decided
 
 Exact CPU/RAM/GPU/VRAM safety limits, scheduling weights and algorithms, mode-specific budgets, adaptation thresholds, model idle timeouts, GPU preemption/unload behaviour, power/thermal policy, platform APIs and hardware-specific validation remain implementation research topics.
+
+
+## ADR-009 — Computer interaction and tool execution architecture
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use a layered computer-interaction strategy. Prefer the most reliable structured interface available, in this order:
+
+1. Native application APIs and structured integrations.
+2. OS accessibility interfaces.
+3. Browser automation using semantic controls and locators.
+4. Visual screen understanding with keyboard and pointer interaction as a fallback.
+
+Use a common internal tool interface with adapters for external protocols such as MCP. MCP is supported as an integration path, not mandated as the platform's sole internal tool contract.
+
+### Host access and execution safeguards
+
+The user selected broad host access rather than a fixed folder allowlist. This does **not** grant tools ambient or unrestricted access.
+
+- File, process, terminal and system operations must be individually evaluated by the central permission broker.
+- Every operation carries trusted user, workspace, component, target-resource and action context.
+- The broker applies the approved risk-based policy and user-wide grant rules from ADR-004; broader user grants never bypass resource ownership or other restrictions.
+- Terminal requests must be structured, validated and attributable; previews and confirmation are required according to risk.
+- Execution should occur in isolated, restartable workers where appropriate, with OS-enforced restrictions and resource limits.
+- Validate paths and targets at execution time; do not rely solely on model-generated descriptions or earlier checks.
+- Read-only operations and modifying/executing operations must be distinguishable.
+- Tool schemas, timeouts, cancellation, execution identifiers and auditable outcomes are required.
+- Untrusted tool output, web content and files are data, not instructions that can override system policy.
+
+### Browser identity
+
+Use a separate assistant-managed browser profile by default. Access to the user's existing browser profile is an explicit, separately authorized capability.
+
+### Recovery
+
+Use operation-level undo where supported and checkpoints for consequential or bulk changes. Clearly identify actions that cannot be reliably undone; do not promise rollback where the external system provides no such guarantee.
+
+### Not decided
+
+Concrete tool schema, MCP adapter design, terminal command policy, worker sandbox technology, OS-specific accessibility and browser automation libraries, exact approval thresholds, and implementation-specific undo/checkpoint mechanisms remain open.
+
+---
+
+## ADR-010 — Desktop awareness, voice and unified desktop experience
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Provide one primary desktop application with optional dashboard, tray controls, notifications and floating companion surfaces. These are clients or views of the authoritative core, not separate authorities or independent permission systems.
+
+### Desktop awareness
+
+The user selected continuous screen awareness while the assistant is running, with user-configurable opt-out.
+
+This is continuous awareness, **not permission for covert recording**. Mandatory safeguards:
+
+- Show a persistent, unmistakable indicator whenever screen content is being captured or analysed.
+- Provide immediate pause and disable controls.
+- Provide application/window exclusions and configurable capture scope.
+- Do not silently retain screen recordings or captured frames. Default to transient processing and no persistent capture history.
+- Make any feature that stores screenshots, extracts persistent content or shares screen data a separate, explicit permission and retention choice.
+- Respect OS capture permissions and platform privacy controls.
+- Keep processing local by default where practical; disclose and obtain permission before sending screen content to a cloud service.
+- Do not capture the lock screen, secure desktop or other OS-protected surfaces where the platform prohibits it.
+- Application metadata awareness and screen-content awareness must be separately controllable.
+
+### Voice
+
+Push-to-talk is the default. Optional wake-word activation may be explicitly enabled. Voice controls must include visible microphone/listening status, immediate mute/disable, configurable local-first recognition and synthesis, and no default permanent recording or retention of raw audio.
+
+### Accessibility and user control
+
+The desktop experience must support keyboard navigation, clear focus handling and screen-reader accessibility. Notifications must be configurable, support quiet hours and avoid excessive interruptions.
+
+### Not decided
+
+Desktop and UI frameworks, tray/overlay implementation, notification APIs, screen-capture adapters, exact indicator design, wake-word engine, speech recognition/synthesis technologies, audio retention settings and platform-specific privacy integration remain open.
+
