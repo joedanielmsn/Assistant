@@ -371,3 +371,66 @@ The desktop experience must support keyboard navigation, clear focus handling an
 
 Desktop and UI frameworks, tray/overlay implementation, notification APIs, screen-capture adapters, exact indicator design, wake-word engine, speech recognition/synthesis technologies, audio retention settings and platform-specific privacy integration remain open.
 
+
+
+## ADR-011 — Intelligence and orchestration architecture
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use a **central, stateful orchestrator with bounded adaptive execution**. The orchestrator owns each task's overall plan, execution state, delegation, recovery and final result. Specialist agents are on-demand workers that perform bounded delegated work and return structured results; they do not independently control the overall assistant or acquire authority.
+
+### Mandatory behaviour
+
+- The orchestrator classifies requests, plans work, selects suitable models/tools/specialists, coordinates execution, verifies outcomes and reports completion.
+- Plans may be revised as new information arrives, but execution is bounded by explicit step, time, token and resource limits.
+- Sequential execution is the default. Parallelize only independent work when it materially improves the result, within the approved resource manager's limits.
+- Specialist contracts define scoped inputs, authorized context, expected structured outputs, evidence, status and error reporting.
+- Model outputs may propose actions, tool calls and plans; deterministic schemas, validation, authorization and the central permission broker enforce what can actually execute. Models are never security authorities.
+- Route models according to task capability, complexity, latency, privacy/cloud policy and current resource availability. Respect the approved model lifecycle and Gaming Mode constraints.
+- Persist sufficient task state and checkpoints to support interruption, recovery and safe resumption. Retries must account for operations that may have completed despite a timeout; do not blindly repeat non-idempotent actions.
+- Isolate worker failures from the core, support cancellation and bounded retries, and return actionable failure information when recovery is not safe.
+- Evaluate orchestration quality using task completion, tool selection and argument correctness, unnecessary calls, verification, recovery, latency and resource consumption.
+- Preserve trusted user/workspace identity and authorization context across every delegation and tool operation.
+
+### Not decided
+
+Concrete model-routing algorithms, planner implementation, task-state schema, retry/idempotency mechanisms, specialist taxonomy, evaluation datasets/benchmarks, model/runtime choices and orchestration libraries remain open.
+
+---
+
+## ADR-012 — Layered memory and governed knowledge architecture
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use a **layered, scope-aware memory system with governed writes and authorization-aware retrieval**. Memory and knowledge repositories are related but distinct: memory stores useful interaction-derived information, while knowledge repositories preserve and retrieve source material such as documents, code and project files.
+
+### Information layers
+
+- **Working memory:** current conversation and active-task context; temporary and bounded.
+- **Episodic memory:** useful summaries of past interactions and experiences; persistent only under the approved memory policy.
+- **Semantic memory:** confirmed facts, preferences and relationships; persistent only under the approved memory policy.
+- **Procedural memory:** reusable workflows and methods; save or activate only after the required user approval.
+- **Knowledge repositories:** source documents, code, project files and reference material, indexed separately from personal memory and governed by their source scope.
+
+### Approved lifecycle and safeguards
+
+- Conversation history does not automatically become permanent memory. Using information is not the same as saving it.
+- Memory writes use a review-based default: the assistant may identify useful candidates, but asks the user to approve them before persistent saving. Separately approved automatic rules may be introduced later.
+- Memory records should preserve provenance, confidence, timestamps and temporal validity where applicable. Corrections and conflicting information must be reconciled or versioned rather than silently overwriting established facts.
+- Project knowledge uses user-selected project locations. The assistant may monitor approved locations for changes and update indexes, but must not silently expand monitoring scope.
+- Original source documents remain authoritative; indexes, embeddings and summaries are derived, rebuildable data.
+- Retrieval must apply trusted user/workspace authorization before content is exposed to a model. Retrieved content, metadata, caches and derived summaries must not cross user or workspace boundaries.
+- Retrieved documents, memories and tool outputs are untrusted data, not instructions or sources of authorization.
+- Updates, corrections, revocation and deletion must propagate to derived indexes, caches and summaries, subject to the documented backup-retention lifecycle.
+- Use keyword, semantic and reranking techniques only where they improve measured retrieval quality enough to justify their latency and resource costs.
+- Keep working context bounded and construct task-specific context from only the authorized, relevant information needed by the current task.
+
+### Not decided
+
+Concrete memory schemas, database and vector/index technologies, embedding and reranking models, retrieval algorithms, conflict-resolution implementation, memory retention periods, deletion guarantees, project watcher mechanisms and user-review interface remain open.
