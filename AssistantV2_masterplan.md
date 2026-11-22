@@ -1567,3 +1567,36 @@ The initial supported x86-64 platform requires **x86-64-v3** CPU instruction-set
 - Keep architecture-specific optimizations separated from portable source code so future targets can be evaluated independently.
 
 This is a CPU instruction-set requirement, not a guarantee of support for every GPU, peripheral or laptop configuration. See ADR-019 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+
+# 39. APPROVED DESKTOP APPLICATION FRAMEWORK: QT 6 + QML
+
+Use **Qt 6 with QML/Qt Quick** for the primary cross-platform desktop application.
+
+- Share the desktop application codebase across Linux and Windows where practical.
+- Keep the desktop app as a client of the authoritative assistant core; identity, authorization, task state and resource policy remain core responsibilities.
+- Use Qt/QML for the primary desktop experience, with optional dashboard, tray controls, notifications and floating companion surfaces.
+- Integrate naturally with the KDE Plasma foundation while retaining a viable Windows experience.
+- Keep OS-specific integrations behind platform adapters.
+- Preserve accessibility, keyboard navigation, screen-reader support and visible privacy/awareness indicators.
+
+Exact Qt modules, QML architecture, build system, packaging and platform-specific UI integration remain implementation-planning decisions. See ADR-020 in [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md).
+
+## 39.1 Proposed implementation stack — not yet approved as a complete stack
+
+The following are current technology candidates for evaluation, not final commitments:
+
+| Area | Candidate |
+|---|---|
+| Authoritative core | Rust + Tokio |
+| AI/specialist workers | Python |
+| LLM inference | llama.cpp |
+| Specialized inference | ONNX Runtime |
+| Personal desktop persistence | SQLite |
+| Shared server persistence | PostgreSQL |
+| Initial local full-text search | SQLite FTS5 |
+| Desktop application | Qt 6 + QML (approved) |
+| API and streaming | Versioned HTTP-compatible API + WebSockets |
+| Initial event/workflow engine | Internal typed event system + durable database state |
+
+The overall stack must be validated for cross-platform support, security boundaries, hardware/resource efficiency, maintainability and ecosystem maturity before the remaining candidates are approved.
