@@ -31,6 +31,7 @@ Deliverables:
 - Maintain the proposed [platform and distribution repository layout](./REPOSITORY_LAYOUT.md); settle repository governance before code bootstrap.
 - Establish Linux/Windows CI, formatting, linting, static analysis, unit tests, integration-test scaffolding, secret scanning and SBOM generation.
 - Define versioned API, worker protocol and plugin-manifest schema conventions.
+- Maintain the [contracts and versioning policy](./CONTRACTS_AND_VERSIONING.md) for client APIs, worker messages, plugin manifests and internal events.
 - Create a threat-model register and data-classification catalogue.
 - Maintain the [security foundation](./SECURITY_FOUNDATION.md), including data handling rules and abuse-case verification.
 - Perform technical spikes for SQLCipher + rusqlite + FTS5, SQLx/PostgreSQL, local IPC, Wasmtime, native sandbox profiles, Qt packaging and Secure Boot.
