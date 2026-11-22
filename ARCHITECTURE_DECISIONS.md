@@ -613,3 +613,28 @@ Concentrating initial development, validation and release engineering on one CPU
 
 Minimum CPU instruction-set baseline, supported processor generations, GPU/accelerator matrix and exact hardware certification requirements remain open for compatibility research.
 
+
+## ADR-019 — Minimum CPU instruction-set baseline: x86-64-v3
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Set **x86-64-v3** as the minimum CPU instruction-set baseline for initial official builds and supported systems.
+
+### Constraints
+
+- x86-64-v3 compatibility is required for officially supported releases.
+- x86-64-v4 may be used for optional optimized builds or runtime dispatch when the processor supports it; it is not a system-wide requirement.
+- CPUs that support only the original x86-64 baseline or x86-64-v2 are outside the initial support commitment.
+- Validate CPU feature availability before installing or launching architecture-specific binaries where practical, and provide clear compatibility diagnostics.
+- Keep portable source code and architecture-specific optimizations separated so future targets can be evaluated without weakening the v3 baseline.
+
+### Rationale
+
+A modern baseline aligns with the CachyOS-derived performance direction and allows broader use of contemporary CPU optimizations while keeping x86-64-v4 optional.
+
+### Not decided
+
+Exact processor-generation support lists, compiler flags, package repository variants, runtime dispatch strategy and hardware certification tests remain implementation and release-engineering decisions.
