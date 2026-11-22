@@ -1485,3 +1485,45 @@ Approved on 22 November 2026. This establishes local-first behaviour and data-pr
 ## 34.4 Still open
 
 Sync protocol, managed-service operations, cryptographic protocols and key recovery design, backup formats and retention periods, export schemas, migration tooling, conflict-resolution algorithms and deletion guarantees.
+
+
+# 35. APPROVED ARCHITECTURE: AI-FIRST CACHYOS-DERIVED LINUX DISTRIBUTION
+
+Approved on 22 November 2026. This establishes the distribution's foundation, product identity, desktop direction, AI integration philosophy and update strategy. It does not select every package, installer component or implementation technology.
+
+## 35.1 Foundation and independent identity
+
+Build the distribution on CachyOS as its technical foundation, selectively reusing useful upstream infrastructure, packages, kernel work, hardware support and installation tooling. The result must be an independently designed and maintained distribution, not a simple CachyOS reskin.
+
+Create an independent name and brand, visual language, desktop defaults, settings experience, system utilities and workflows. Maintain our own repositories, build and testing pipeline, release identity, documentation and distribution-level quality control. CachyOS updates are upstream inputs, not automatic approvals for our releases.
+
+## 35.2 Desktop experience
+
+Use KDE Plasma as the initial desktop foundation, with a substantially redesigned and integrated experience. Keep the architecture modular enough to replace or extend desktop components later. The goal is an original, cohesive desktop product without taking on the full cost of developing a new desktop environment from scratch at the outset.
+
+## 35.3 AI-first integration
+
+Assistant integration is a first-class part of the operating system experience from the beginning. The distribution is deliberately AI-first; users who do not want an AI-focused operating system can choose CachyOS itself.
+
+Integrate assistant capabilities into desktop and system workflows rather than treating the assistant as an unrelated optional application. AI services may be paused or disabled without breaking ordinary operating-system and desktop functionality.
+
+System integration does not grant unrestricted administrative authority. Assistant actions remain subject to trusted identity, the central permission broker and resource manager. A per-user assistant service remains the default; privileged system components must be narrowly scoped to necessary OS integration.
+
+## 35.4 Update and release strategy
+
+Use a curated rolling-release model. Maintain our own testing channel and promote validated updates to our stable channel. Do not automatically ship every CachyOS upstream update without distribution-level validation.
+
+Prefer upstream components and minimise long-lived custom patches where practical. Maintain our own package repositories, build pipeline, release process and quality gates.
+
+## 35.5 Distribution requirements
+
+- Developer productivity and gaming are first-class use cases.
+- Laptop hardware compatibility, graphics support and power management require deliberate validation.
+- Installation, recovery and system rollback are core product capabilities.
+- The OS remains useful without AI inference, cloud access or a hosted account.
+- No mandatory telemetry or cloud services.
+- Hardware optimisations must not make the distribution unusable on ordinary supported hardware.
+
+## 35.6 Still open
+
+Distribution name and branding, exact CachyOS components to adopt or replace, repository/build infrastructure, package promotion and testing policy, desktop-shell modifications, kernel variants, installer configuration, filesystem/partitioning defaults, Secure Boot, hardware profiles, recovery tooling, update/rollback mechanics and release support policy.
