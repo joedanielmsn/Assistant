@@ -604,7 +604,7 @@ mod tests {
         let (mut writer, mut reader) = tokio::io::duplex(32);
         writer.write_all(b"{\"version\":1}\n").await.unwrap();
         let frame = read_frame(&mut reader).await.unwrap();
-        assert_eq!(frame, br#"{"version":1}"#);
+        assert_eq!(frame, br#"{"version":1}"#.to_vec());
     }
 
     #[tokio::test]
