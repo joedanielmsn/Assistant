@@ -1403,3 +1403,85 @@ Keep memory distinct from source knowledge repositories:
 ## 31.4 Still open
 
 Memory schemas, database and vector/index technologies, embedding and reranking models, retrieval algorithms, conflict-resolution implementation, retention periods, deletion guarantees, project watcher mechanisms and review interface.
+
+
+
+# 32. APPROVED ARCHITECTURE: AUTOMATION AND PROACTIVE WORKFLOWS
+
+Approved on 22 November 2026. This establishes workflow behaviour and governance, not a scheduler or workflow-engine selection.
+
+## 32.1 Event-driven durable workflows
+
+Use event-driven automation integrated with the central orchestrator, resource manager and permission broker. Prefer explicit events, user requests and scheduled triggers over continuous polling or unnecessary model inference. Persist workflow state, scheduled waits, checkpoints and approval pauses so workflows can survive restarts.
+
+## 32.2 Ownership, safety and resource governance
+
+- Every automation has a trusted owner and user/workspace scope. Shared workflows require explicit workspace ownership and policy.
+- Background execution retains initiating identity, scope and authorization context; revalidate permissions before delayed or consequential actions when appropriate.
+- Bound execution time, steps, retries, concurrency and resource consumption.
+- Provide previews, approval checkpoints, pause, cancellation, execution history and actionable failure reporting.
+- Use idempotency keys, deduplication or equivalent safeguards for retried external operations. Do not promise exactly-once effects where external systems cannot guarantee them.
+- Defer nonessential automation during Gaming Mode and resource pressure.
+- Learned workflows may be proposed for reuse, but persistent saving and activation remain subject to memory-governance and user-review rules.
+
+## 32.3 Still open
+
+Workflow definition format, scheduler, event transport, persistence schema, trigger catalogue, retry policy details and automation UI.
+
+
+# 33. APPROVED ARCHITECTURE: PLUGIN AND INTEGRATION ECOSYSTEM
+
+Approved on 22 November 2026. This establishes ecosystem openness and security requirements, not a registry, package format or sandbox technology.
+
+## 33.1 Open ecosystem and trust
+
+Provide a public community registry and support third-party and locally developed extensions. Plugins declare identity, publisher, version, dependencies, capabilities, network needs, resource requirements and requested permissions through a manifest.
+
+Support publisher verification, package integrity checks, signatures and provenance tracking. Clearly distinguish verified, community and locally developed/unverified extensions; verification is not a guarantee that software is harmless.
+
+## 33.2 Execution and permission enforcement
+
+- Plugin installation does not grant blanket access. Every privileged operation is evaluated by the central permission broker under user grants and all applicable ownership/workspace boundaries.
+- Run plugins in restricted, isolated and restartable workers with OS-enforced controls appropriate to their capabilities; process separation alone is not a sandbox.
+- Use the common internal tool contract with adapters for external protocols such as MCP. MCP is supported but is not the sole internal plugin/tool architecture.
+- Scope integration credentials to the relevant service, user/workspace and capability. Protect secrets from unrelated plugins and workers.
+- Review material permission, dependency and capability changes during updates; preserve version/provenance and provide rollback where feasible.
+- Disabling or uninstalling a plugin revokes its credentials and grants and cancels or detaches scheduled tasks and event subscriptions.
+- Treat plugin output and package content as untrusted data, not instructions or sources of authority.
+
+## 33.3 Still open
+
+Manifest schema, registry governance, signing infrastructure, package format, sandbox technologies, update/rollback mechanics, plugin SDK, compatibility policy and moderation operations.
+
+
+# 34. APPROVED ARCHITECTURE: SYNCHRONIZATION, BACKUP AND PORTABILITY
+
+Approved on 22 November 2026. This establishes local-first behaviour and data-protection boundaries, not concrete sync or cryptographic protocols.
+
+## 34.1 Synchronization
+
+- Keep the platform fully useful locally and offline. Sync is optional.
+- Support both an optional managed synchronization service and self-hosted synchronization using the same interoperable architecture.
+- Encrypt private data on authorized devices before transmission so the sync service does not need plaintext access.
+- Keep private user data and explicitly shared workspace data under distinct authorization and key boundaries. Workspace sharing requires explicit membership and controlled key distribution.
+- Support device enrollment, device revocation and documented recovery procedures for lost devices or keys.
+- Automatically merge safe structured changes where reliable; preserve version history and surface meaningful conflicts for user resolution. Avoid timestamp-only last-write-wins when it could silently discard meaningful edits.
+- Preserve ownership, provenance, versioning and authorization metadata throughout synchronization.
+
+## 34.2 Backup and recovery
+
+- Provide encrypted, versioned backups with configurable retention and multiple destinations, including optional offline/offsite copies.
+- Protect backup integrity and deletion controls; verify backup integrity and regularly test restoration.
+- Support selective restoration where feasible and report conflicts or unrecoverable data.
+- Distinguish live-data deletion from eventual expiration in retained backups and document limitations honestly.
+
+## 34.3 Export and import
+
+- Provide user-readable exports separately from complete backup/migration archives.
+- Define documented, versioned formats for conversations, memory, projects, settings, automation definitions, workspace data and relevant attachments/metadata.
+- Support full migration and selective import, with reports for unsupported or omitted data.
+- Imported plugins and executable automation remain inactive and untrusted until reviewed and explicitly authorized. Importing data never silently grants permissions or activates code.
+
+## 34.4 Still open
+
+Sync protocol, managed-service operations, cryptographic protocols and key recovery design, backup formats and retention periods, export schemas, migration tooling, conflict-resolution algorithms and deletion guarantees.
