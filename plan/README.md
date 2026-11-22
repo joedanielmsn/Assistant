@@ -9,10 +9,16 @@ This directory contains the authoritative planning material for Local Assistant 
 - [Repository layout](./REPOSITORY_LAYOUT.md)
 
 ## Phase 0
+- [Consolidated Phase 0 engineering record](../phase-0/README.md)
+- [Phase 0 exit and transition review](../phase-0/EXIT_REVIEW.md)
+- [Phase 0 consolidated spike results](../phase-0/SPIKE_RESULTS.md)
 - [Research progress](./RESEARCH_PROGRESS.md)
 - [Technical spike register and execution evidence](./PHASE_0_TECHNICAL_SPIKES.md)
 - [Requirements traceability matrix](./PHASE_0_TRACEABILITY.md)
 - [SP-06 Wasmtime Linux report](./SP-06-WASMTIME-LINUX.md)
+
+## Phase 1
+- [Secure local core implementation specification](../phase-1/PHASE_1_SECURE_CORE_SPEC.md)
 
 ## Engineering and security
 - [Engineering baseline](./ENGINEERING_BASELINE.md)
