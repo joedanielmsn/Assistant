@@ -423,3 +423,35 @@ Remaining before architecture sign-off:
 - Complete project-wide licence/dependency and asset/model rights audit.
 
 No implementation has started. These are architecture directions and validation requirements, not claims that security controls have already been implemented or certified.
+
+
+### Additional Phase 8 integration decisions — ADR-030 and ADR-031
+
+Recorded 22 November 2026:
+- Core lifecycle: per-user systemd service on Linux desktop; unprivileged system service account on Linux server; per-user background process on Windows.
+- API: Axum/Tokio, versioned HTTP-compatible API and WebSockets, OpenAPI 3.1, JSON Schema-compatible worker/plugin contracts.
+- Local IPC: Linux Unix sockets and Windows named pipes with peer identity/ACL checks; supervised worker JSON over stdio.
+- Desktop: Qt Quick/QML, Qt Quick Controls, thin C++ transport/view-model layer, Qt Network and Qt WebSockets.
+- SQLite stays on local filesystems; WAL is same-host only. PostgreSQL is the shared-server backend.
+- Installer: Calamares with project-owned configuration/branding, beginner guided and advanced manual modes; UEFI/GPT and Btrfs recommended defaults, ext4 option.
+- Optional LUKS2 system encryption is separate from assistant data encryption.
+- Secure Boot is a supported target, not a mandatory setting; signed installation/update/recovery chain must be validated before claiming support.
+
+Research references:
+- Axum: https://github.com/tokio-rs/axum
+- Tokio local IPC: https://docs.rs/tokio/latest/tokio/net/
+- Qt Quick and Controls: https://doc.qt.io/qt-6/qtquick-index.html and https://doc.qt.io/qt-6/qtquickcontrols-index.html
+- Qt WebSockets: https://doc.qt.io/qt-6/qtwebsockets-index.html
+- SQLite WAL constraints: https://www.sqlite.org/wal.html
+- Calamares: https://calamares.io/about/
+- CachyOS Secure Boot: https://wiki.cachyos.org/configuration/secure_boot_setup/
+
+Remaining before Phase 8 sign-off:
+- Prototype/test the local client transport adapters and worker IPC framing on Linux and Windows.
+- Verify SQLCipher FTS5 build configuration and migration/backup behaviour.
+- Select the distribution bootloader and Secure Boot key enrollment/signing design through an end-to-end prototype.
+- Validate Calamares partitioning and LUKS2 workflows on representative UEFI systems.
+- Finalize API/schema and service lifecycle specifications.
+- Complete independent security review and project-wide licensing audit.
+
+No implementation has started. These decisions establish design defaults; platform and distribution validation remains a prerequisite to implementation milestones.
