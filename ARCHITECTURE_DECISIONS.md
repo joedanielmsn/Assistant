@@ -560,3 +560,31 @@ Build the project's AI-powered Linux distribution on top of CachyOS as its techn
 ### Not decided
 
 Distribution name and branding, exact CachyOS components to adopt or replace, repository and build infrastructure, package promotion/testing policy, desktop-shell modifications, kernel variants, installer configuration, filesystem/partitioning defaults, Secure Boot implementation, hardware profiles, recovery tooling, update/rollback mechanics and release support policy remain subject to further research and implementation design.
+
+
+## ADR-017 — Privileged system operations use central broker authorization
+
+**Status:** Approved  
+**Date:** 2026-11-22
+
+### Decision
+
+Use the platform's central permission broker as the authoritative authorization and approval layer for assistant-initiated privileged system operations. Do not require a second interactive authorization prompt from the operating system for every operation.
+
+### Mandatory safeguards
+
+- The broker must authenticate the initiating identity, evaluate the requested operation and applicable policy, and record the decision before execution.
+- Privileged execution must be delegated to a narrowly scoped OS helper or integration component; the ordinary assistant core and model workers must not run with broad administrator/root privileges.
+- The helper exposes only predefined, structured operations with validated arguments and targets. It must not provide arbitrary shell execution, unrestricted root/administrator access or a general-purpose privilege escalation interface.
+- Plugins, specialists, automations and models cannot invoke the helper directly or bypass the broker.
+- OS-enforced process isolation, access controls and least-privilege boundaries remain mandatory. The decision removes a duplicate interactive OS authorization step; it does not remove operating-system security controls.
+- Deny by default when the broker, trusted identity context or policy evaluation is unavailable or ambiguous.
+- Record the authorized operation and execution outcome in the appropriate audit history, subject to data-minimization rules.
+
+### Rationale
+
+A single authoritative authorization experience avoids duplicate prompts while preserving a narrow and independently constrained privileged execution boundary. The helper's limited operation surface reduces the impact of a compromised or misbehaving assistant component.
+
+### Not decided
+
+The exact helper architecture, operation catalogue, platform-specific implementation, privilege lifecycle, IPC protocol and audit storage remain implementation decisions.
