@@ -14,6 +14,7 @@
 | Multi-user architecture | Approved | Support personal per-OS-user installations and shared multi-user servers, with explicit identities/workspaces and strict private-data boundaries |
 | Data ownership and persistence | Approved | Four logical scopes: installation, user, workspace and task/session; private by default, explicit sharing, owner-scoped background tasks and lifecycle controls |
 | Central permission broker | Approved | Hybrid RBAC + ABAC; risk-based approval; user-wide grants bounded by user/data ownership; configurable lifetimes; deny-by-default, previews, audit, cancellation, revocation and emergency stop |
+| Modular core and selective process isolation | Approved | Modular main core; isolate components only for independent lifecycle/resource needs, untrusted or sensitive work, failure containment, or specialised runtime/hardware requirements |
 
 See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision records.
 
@@ -21,17 +22,17 @@ See [ARCHITECTURE_DECISIONS.md](./ARCHITECTURE_DECISIONS.md) for the decision re
 
 | Topic | Current understanding | Status |
 |---|---|---|
-| Overall architecture | Hybrid modular core; separate processes only where lifecycle, security isolation or hardware access justify them | Proposed; not finally approved |
+| Overall architecture | Modular core with selectively isolated workers; avoid unnecessary microservices overhead | Approved; see ADR-005 |
 | Core/client model | One authoritative core; desktop, voice, companion and other interfaces act as clients | Proposed; awaiting decision |
 | IPC | Linux Unix-domain sockets/peer credentials, Windows named pipes/ACLs, structured RPC options researched | No transport selected |
-| Process/security boundaries | Trusted core, authenticated clients, restricted workers, independent AI workloads and external environments | Proposed; requires further design |
+| Process/security boundaries | Main core for orchestration and policy; separate workers only where lifecycle, isolation, failure-containment or specialised-runtime needs justify them | Direction approved; exact topology and sandboxing remain open |
 | Data storage isolation | Hybrid strategy based on sensitivity and operational requirements | Direction approved; concrete implementation undecided |
 
 ## Next research topic
 
-**Core/process boundaries and lifecycle model**
+**Core/client communication and IPC**
 
-Define the authoritative core, client interfaces, module/process boundaries, worker lifecycles, failure isolation and minimum viable cross-platform deployment topology. Keep the design consistent with the approved per-user desktop and future shared-server profiles. Do not select transports or technologies without comparative evaluation.
+Define how desktop and other clients authenticate to the authoritative core, how requests carry trusted user/workspace context, and how local and remote clients communicate safely across Linux, Windows and future headless/server deployments. Compare IPC/RPC options without prematurely selecting a transport.
 
 ## Deferred / undecided
 
