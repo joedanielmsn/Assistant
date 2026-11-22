@@ -333,6 +333,94 @@ The integrated Rust/Tokio harness launched Python workers with stdin/stdout/stde
 
 **Fail / escalation:** Any worker path that silently runs unrestricted when isolation is unavailable blocks untrusted worker execution.
 
+### SP-05 execution report — Linux prototype (2026-11-22)
+
+**Result:** The Linux prototype demonstrated layered sandbox enforcement and actual cgroup resource enforcement. SP-05 remains **in progress**: these are disposable conformance experiments, not a production sandbox implementation; network-denial/escape coverage, production supervisor integration and Windows validation remain outstanding.
+
+**Environment**
+- OS: CachyOS Linux, kernel 7.3.5-2-cachyos, x86_64.
+- Bubblewrap: 0.13.1.
+- Python: 3.14.10.
+- Landlock ABI: 11 (x86-64 syscall interface).
+- cgroup v2 mounted at `/sys/fs/cgroup`.
+- User systemd manager service had `Delegate=yes`; CPU, cpuset, IO, memory and PID controllers were available at the delegated user-service level.
+- Tests ran as the ordinary user in disposable Bubblewrap/systemd scopes; no global cgroup configuration was changed.
+
+**Executed test groups and results**
+
+1. **Bubblewrap runtime and namespace/filesystem isolation**
+   - Minimal merged-/usr sandbox layout executed `/usr/bin/true` and Python successfully.
+   - User namespace mapped namespace UID/GID 0 to the invoking host UID/GID 1000; the process retained the unprivileged host identity.
+   - Effective, permitted, inheritable and bounding capability sets were empty in the worker.
+   - `NoNewPrivs: 1` was observed.
+   - Network, mount and PID namespace identities differed from the host.
+   - Host `/home` and `/var` were not mounted in the tested sandbox; `/tmp` was private and writable; `/usr` was read-only and write attempts returned `EROFS`.
+
+2. **Landlock filesystem enforcement**
+   - Kernel reported Landlock ABI 11.
+   - Ruleset creation, filesystem rule insertion and self-restriction succeeded.
+   - Permitted reads succeeded; unauthorized write and file-creation attempts were denied with `EACCES`.
+   - In the integrated worker run, Landlock remained active alongside Bubblewrap, seccomp and process limits.
+
+3. **Seccomp enforcement**
+   - A disposable BPF filter installed successfully.
+   - The test allowed `getpid` and denied `getppid` with `EPERM`.
+   - The integrated worker repeated the blocked-`getppid` check after installing Landlock restrictions.
+
+4. **Per-process resource limits**
+   - `RLIMIT_NOFILE` was set to 64.
+   - `RLIMIT_FSIZE` was set to 4096 bytes; an oversized write was rejected with `EFBIG`, and the resulting file did not exceed the limit.
+   - These controls were also checked in the integrated worker.
+
+5. **Delegated cgroup creation and controller propagation**
+   - A transient user systemd scope with `Delegate=yes` successfully created a child cgroup.
+   - After moving the test shell into the child, the scope enabled `cpu`, `memory` and `pids` for descendants.
+   - The child exposed writable `cpu.max`, `memory.max` and `pids.max` interfaces.
+   - The initial inspection showed no child controllers before the parent explicitly enabled propagation; the corrected test confirmed propagation worked. No global hierarchy settings were changed.
+
+6. **Integrated sandbox run**
+   - One Python worker ran inside Bubblewrap with isolated namespaces, explicit read-only system mounts and private temporary storage.
+   - Landlock denied unauthorized file creation while allowing the required system-file read.
+   - Seccomp denied the selected syscall.
+   - `NoNewPrivs`, dropped effective capabilities and the two RLIMIT settings were verified in that same worker.
+   - All integrated worker assertions passed.
+
+7. **Actual cgroup resource enforcement**
+   - A disposable child cgroup was configured with `cpu.max = 50000 100000` (50% of one CPU), `memory.max = 536870912` (512 MiB), `memory.high = 67108864` (64 MiB), and `pids.max = 16`.
+   - PID test attempted to create more than the allowed number of child processes; creation was constrained and `pids.events` recorded a `max` event.
+   - CPU workload increased the `nr_throttled` counter by 21, demonstrating quota throttling.
+   - A workload touching 128 MiB increased the `memory.events` `high` counter by 217, demonstrating memory pressure handling at `memory.high`.
+   - All three enforcement checks passed. The `memory.max` hard limit was configured but was not deliberately reached; no OOM-kill test was performed.
+
+**Acceptance status — Linux prototype evidence**
+- [x] Bubblewrap launches a worker with isolated user, mount, PID and network namespaces.
+- [x] Tested host paths are excluded or mounted read-only as intended.
+- [x] Worker retains unprivileged host identity with no effective capabilities.
+- [x] No-new-privileges is active.
+- [x] Landlock filesystem denial is enforced.
+- [x] Seccomp syscall denial is enforced.
+- [x] Per-process file-descriptor and file-size limits are enforced.
+- [x] Delegated cgroup child creation and CPU/memory/PID controller propagation work without root.
+- [x] CPU quota throttling, PID ceiling and memory.high pressure events were observed.
+- [ ] Explicit network-connectivity denial and broader host-socket/D-Bus exposure tests.
+- [ ] Broader filesystem/process escape and adversarial syscall coverage.
+- [ ] Deliberate `memory.max` hard-limit/OOM behaviour and recovery validation.
+- [ ] Worker termination, descendant cleanup and supervisor restart integration in the production worker manager.
+- [ ] Reviewed production seccomp profiles and per-worker Landlock policies.
+- [ ] Fail-closed behavior when a required sandbox primitive is unavailable.
+- [ ] Independent Windows AppContainer/restricted-token/job-object conformance validation.
+
+**Limitations and interpretation**
+- The experiments used disposable Python and shell harnesses, not production worker code or a reusable sandbox policy engine.
+- Namespace identity checks demonstrate namespace separation, but do not alone prove all outbound network paths are blocked. Explicit network denial and socket exposure tests remain open.
+- Landlock and seccomp rules were deliberately small proof-of-enforcement policies. They are not approved production allowlists.
+- The integrated run verified cgroup limits were configured for its worker. Actual CPU, memory-pressure and PID enforcement were demonstrated in a separate disposable cgroup test.
+- The `memory.high` event proves reclaim/throttling pressure was triggered; it is not evidence that the `memory.max` hard ceiling or OOM recovery behavior was tested.
+- No production cleanup/restart lifecycle or adversarial escape test was performed.
+- Windows has not yet been tested, consistent with the Linux-first execution order.
+
+**Decision:** Retain the ADR-024 Linux direction: Bubblewrap namespaces, explicit minimal mounts, Landlock, seccomp, dropped capabilities, no-new-privileges, per-process RLIMITs and delegated cgroup v2 resource controls. Run the core under a delegated per-user systemd service and create subordinate worker cgroups; do not modify the global cgroup hierarchy. Untrusted worker execution must fail closed if mandatory isolation cannot be established. Do not mark SP-05 fully complete until the remaining Linux integration/negative tests and later Windows conformance are complete.
+
 ### SP-06 — Wasmtime capability sandbox
 
 **Question:** Can Wasm plugins use explicit host capabilities without ambient access?
