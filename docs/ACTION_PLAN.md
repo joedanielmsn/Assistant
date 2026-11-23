@@ -65,11 +65,39 @@ Tasks:
 9. Add timeout and resource-limit conventions.
 10. Keep arbitrary shell execution outside the default tool surface.
 
-Reuse investigation:
+Approved integration decisions (2026-11-23):
 
-- Evaluate existing file search and indexing libraries.
-- Evaluate MCP support before implementing custom external-tool protocols.
-- Prefer Rust-compatible libraries or isolated adapters where possible.
+- **ripgrep:** use the installed `rg` executable through a controlled binary
+  adapter. Do not embed or reimplement its search engine.
+- **MCP:** integrate through an adapter into our native Tool Registry. The
+  native registry remains authoritative for permissions, execution context,
+  logging, and result normalization.
+- **Tree-sitter:** include structural parsing in the Coding Agent after
+  basic project search is working. Use it for syntax-aware code navigation,
+  not as a replacement for ordinary text search.
+
+Implementation requirements:
+
+1. Detect and validate the `rg` executable and expose a clear unavailable
+   error if it is missing.
+2. Invoke it without a shell, using argument arrays and a controlled
+   environment.
+3. Restrict search roots to the request's authorized workspace.
+4. Bound execution time, result count, output size, and concurrency.
+5. Respect ignore files by default and provide explicit, permission-checked
+   options when broader search is needed.
+6. Normalize matches into stable structured results with paths, line
+   numbers, and snippets.
+7. Add Tree-sitter as a separate code-intelligence adapter with supported
+   language/parser coverage documented.
+8. Evaluate parser distribution and grammar licensing before shipping
+   language grammars.
+9. Add MCP client/server transport support only through a permission-aware
+   adapter; external servers must not bypass the native Tool Registry.
+
+The exact Rust crates, MCP transport options, and Tree-sitter grammar
+distribution strategy remain implementation research items; no additional
+major framework has been approved.
 
 Acceptance criteria:
 
@@ -294,7 +322,10 @@ The next implementation batch should be:
 3. Add focused security and integration tests.
 4. Validate the complete Rust and desktop builds.
 5. Commit a coherent checkpoint.
-6. Begin the reusable tool expansion.
+6. Begin the reusable tool expansion using the approved ripgrep binary
+   adapter.
+7. Add Tree-sitter structural parsing after basic search is working.
+8. Implement MCP interoperability through a native-registry adapter.
 
 Do not begin a major agent framework integration before the relevant
 alternatives have been researched and presented for approval.
