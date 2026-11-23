@@ -185,9 +185,38 @@ file-read limit, and a 100-entry directory-listing limit.
 The workspace tools do not provide arbitrary shell execution or file
 modification.
 
+### Approved external tool integrations
+
+The following integration approaches were approved on 2026-11-23.
+
+#### ripgrep adapter
+
+Use the installed `rg` executable for fast, recursive project search.
+Invoke it directly without a shell, through a bounded adapter that checks
+the authorized workspace, limits execution time and output, and returns
+structured matches. The adapter is a tool implementation; it does not
+receive unrestricted process or filesystem authority.
+
+#### MCP adapter
+
+MCP provides interoperability with external tool servers. It must connect
+through the native Tool Registry. The registry remains responsible for
+capability checks, authenticated principal, workspace context, user
+approval, execution limits, logging, and normalized results.
+
+#### Tree-sitter adapter
+
+Tree-sitter provides syntax-aware parsing and code navigation for the
+Coding Agent. It complements ripgrep rather than replacing text search.
+Integrate it after basic project search works. Parser and grammar choices
+must be reviewed for language coverage, maintenance, packaging, and license.
+
 ### Planned agent capabilities
 
 - Desktop-selected workspace propagation.
+- ripgrep-backed project search.
+- Tree-sitter-backed structural code navigation.
+- MCP external-tool interoperability through the native registry.
 - Agent Coordinator and specialist delegation.
 - Coding and research workflows.
 - Delegated task lifecycle and result aggregation.
