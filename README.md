@@ -5,27 +5,25 @@ provider-neutral Rust core and a native Qt/QML desktop application.
 
 ## Current Development Status
 
-**Phase 1 — First working desktop prototype**
+**Linux desktop prototype — persistent conversations and initial agent/tool system working.**
 
-Currently working:
-- Rust assistant core.
-- Ollama inference integration.
-- `assistant-qwen:latest` as the selected primary model.
-- 16,384-token context successfully tested.
+Verified foundations:
+- Rust assistant daemon and Ollama inference integration.
+- Primary model: `assistant-qwen:latest`.
+- 16,384-token context tested; configurable 4K–16K context setting.
 - Unix-domain socket IPC using JSON-RPC 2.0 over NDJSON.
-- Streaming responses from the Rust core.
-- Conversation creation and independent conversation IDs.
-- Initial Qt 6/QML desktop interface.
-- C++ desktop-to-core bridge with JSON-RPC request tracking.
+- Local client authentication using Linux peer credentials.
+- Streaming responses and task cancellation infrastructure.
+- SQLite conversation and message persistence.
+- Desktop conversation creation, listing, selection, renaming, and deletion.
+- Qt 6/QML interface with C++ IPC bridge.
+- Agent registry with General, Research, Coding, and System definitions.
+- Shared runtime tool registry with strict argument-schema validation.
+- Calculator tool successfully executed through the live desktop-to-daemon agent path.
+- Per-agent capability boundaries and request/task context propagation.
 
-Not yet implemented:
-- Persistent conversation storage.
-- Conversation list, renaming, and deletion in the UI.
-- User memory and preference management.
-- Screen Awareness Engine.
-- Adaptive skill development.
-- Model manager and complete settings interface.
-- Windows desktop implementation.
+The initial agent system is operational, but multi-agent coordination and
+specialist delegation are not yet implemented.
 
 See `docs/DEVELOPMENT_STATUS.md` for the detailed status.
 
@@ -41,7 +39,7 @@ See `docs/DEVELOPMENT_STATUS.md` for the detailed status.
 - **Default context:** 16K tokens
 
 Rust owns application state, conversation orchestration, inference coordination,
-and future agent capabilities. The desktop application is a client of the core.
+permissions, and agent execution. The desktop application is a client of the core.
 
 ## Project Principles
 
@@ -52,16 +50,16 @@ and future agent capabilities. The desktop application is a client of the core.
 - Streaming and cancellation as first-class capabilities.
 - User-controlled memory, personalization, and permissions.
 - No telemetry or automatic diagnostic uploads.
-- Safety and permission boundaries must not be bypassed by adaptive features.
+- Safety and permission boundaries must not be bypassed by agents or adaptive features.
 
 ## Development Roadmap
 
 1. Complete the Linux desktop application on CachyOS.
-2. Implement persistent conversations, settings, memory, and model management.
-3. Build the Screen Awareness Engine and agent capabilities.
+2. Finish persistence, settings, model management, memory, and reliability.
+3. Build the Screen Awareness Engine and coordinated agent/skill system.
 4. Stabilize the Linux product and create its installer.
 5. Develop the Windows desktop implementation and installer.
-6. Consider a separate AI-integrated CachyOS-derived OS product after both
+6. Consider a separate AI-integrated CachyOS-derived OS product only after both
    desktop products are complete.
 
 See `docs/PROJECT_PLAN.md` and `docs/ARCHITECTURE.md`.

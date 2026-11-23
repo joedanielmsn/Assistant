@@ -30,6 +30,33 @@ impl JsonRpcRequest {
     pub fn is_notification(&self) -> bool {
         self.id.is_none()
     }
+
+    pub fn validation_error(&self) -> Option<&'static str> {
+        if self.jsonrpc != JSON_RPC_VERSION {
+            return Some("jsonrpc must be exactly 2.0");
+        }
+
+        if self.method.trim().is_empty() {
+            return Some("method must not be empty");
+        }
+
+        // Null is retained as the representation of omitted params
+        // by the current deserialization structure.
+        if !self.params.is_null()
+            && !self.params.is_object()
+            && !self.params.is_array()
+        {
+            return Some("params must be an object or array");
+        }
+
+        if let Some(id) = &self.id {
+            if !id.is_string() && !id.is_number() {
+                return Some("id must be a string or number");
+            }
+        }
+
+        None
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -67,44 +67,48 @@ Initial direction:
 
 ### Phase 1 — Working Core and Desktop Prototype
 
-Status: Core prototype and initial GUI working.
+Status: **Working prototype established.**
 
 Completed:
 - Fresh Rust project.
 - Ollama provider integration.
 - Primary model selected.
-- 16K context benchmark completed successfully.
-- JSON-RPC 2.0 / NDJSON IPC.
-- Unix-domain socket server.
-- Conversation creation.
+- 16K context tested successfully.
+- JSON-RPC 2.0 / NDJSON IPC over Unix-domain sockets.
+- Local peer authentication.
+- Request validation and bounded frame handling.
+- Conversation creation and persistent SQLite history.
 - Streaming response notifications.
-- Chat cancellation support in the core IPC design.
-- Initial Qt/QML desktop shell.
-- C++ IPC client bridge.
-- JSON-RPC request tracking.
-- Basic new-conversation flow.
+- Core task cancellation infrastructure.
+- Qt/QML desktop shell and C++ IPC bridge.
+- Conversation list, selection, renaming, and deletion.
+- Context-length settings and persistence.
 
 Remaining:
-- Improve error and disconnect handling.
+- Complete IPC reconnect and disconnect recovery.
 - Add a visible cancellation control.
-- Verify conversation isolation and multi-turn history.
-- Add persistent conversation storage.
+- Expand lifecycle and failure-path integration tests.
 
 ### Phase 2 — Desktop Foundation
 
-- Persistent conversation database.
+Status: **In progress.**
+
+Completed foundations:
+- Persistent conversation and message database.
 - Conversation list, selection, renaming, and deletion.
+- Persisted settings and configurable 4K–16K context length.
+- Task context persistence and context assembly.
+- Basic desktop chat and message-copy interaction.
+
+Remaining:
 - Reliable reconnection and startup/shutdown handling.
-- Settings architecture and persistence.
-- Model manager.
-- Configurable context length from 4K to 16K, in 1K increments.
-- Clear generation status and cancellation controls.
-- Better message rendering and conversation navigation.
+- Complete settings and model manager.
+- User-facing cancellation and task-state controls.
+- Additional desktop and IPC reliability work.
 
 ### Phase 3 — Memory and Personalization
 
-Keep these systems separate:
-
+Planned:
 1. Conversation history: messages belonging to a particular chat.
 2. User memory: durable information and preferences the user allows the
    assistant to retain.
@@ -117,7 +121,8 @@ Provide ways to inspect, correct, disable, and delete retained information.
 
 ### Phase 4 — Screen Awareness Engine
 
-Screen awareness should be enabled by default while Assistant Mode is active.
+Planned. Screen awareness should be enabled by default while Assistant Mode
+is active.
 
 Requirements:
 - Visible active indicator.
@@ -138,19 +143,36 @@ Initial Linux integration:
 
 ### Phase 5 — Agent and Skill System
 
-- Structured tool definitions and validation.
-- Task and worker supervision.
-- Explicit permission boundaries.
-- Cancellation and cleanup of worker processes.
-- Resource limits and isolation.
-- Skill evaluation before activation.
-- User approval for new permissions and consequential capabilities.
+Status: **Initial agent/tool foundation implemented; coordination and execution
+supervision remain in progress.**
+
+Completed foundations:
+- Runtime tool registry and built-in calculator.
+- Structured tool metadata and argument schemas.
+- Strict recursive schema validation.
+- Capability-checked tool execution.
+- Structured execution status, output, errors, and duration.
+- Agent registry with General, Research, Coding, and System definitions.
+- Shared `AgentContext` carrying authenticated identity and request/task context.
+- General Agent planner and live calculator execution.
+- Focused agent/tool test suite.
+
+Next:
+- Agent Coordinator and delegation protocol.
+- Specialist execution workflows.
+- Shared delegated-task lifecycle.
+- Result aggregation and failure handling.
+- Complete central permission-broker authorization for consequential tools.
+- Worker supervision, resource limits, cancellation, and isolation.
+- Skill evaluation before activation and user approval for new permissions.
 
 Investigate systemd user services, Bubblewrap, and Landlock as appropriate.
 
 ### Phase 6 — Linux Product Completion
 
+Planned:
 - Complete settings and user-facing controls.
+- Complete Screen Awareness and agent capabilities.
 - Performance and reliability stabilization.
 - Essential automated tests and integration checks.
 - Dependency and license inventory.
@@ -159,6 +181,7 @@ Investigate systemd user services, Bubblewrap, and Landlock as appropriate.
 
 ### Phase 7 — Windows Product
 
+Planned:
 - Windows platform providers and IPC transport.
 - Desktop-awareness implementation.
 - Windows packaging and installer.
@@ -190,7 +213,7 @@ Context configuration:
 - Minimum: 4K.
 - Default: 16K.
 - Maximum: 16K.
-- Planned adjustment step: 1K.
+- Adjustment step: 1K.
 
 Retain resource checks and a safe fallback if future configurations cannot
 run reliably.
@@ -200,5 +223,5 @@ run reliably.
 - Encryption: defer until late development or a later update.
 - Release licensing: decide during release planning.
 - Independent package repository/server: not required for the initial OS product.
-- Broader test, formatting, and Clippy campaigns: expand during stabilization,
+- Broad test, formatting, and Clippy campaigns: expand during stabilization,
   not at the expense of reaching a working product prototype.

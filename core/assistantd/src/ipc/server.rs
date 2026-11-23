@@ -1,3 +1,4 @@
+use crate::agent::registry::AgentRegistry;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -12,10 +13,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::{Value, json};
 
+use crate::agent::orchestrator::AgentOrchestrator;
+use crate::agent::tools::ToolRegistry;
 use crate::config::AppConfig;
 use crate::context::{ContextManager, TaskContext};
 use crate::identity::ClientIdentity;
-use crate::permissions::PermissionBroker;
+use crate::permissions::{Capability, PermissionBroker};
 use crate::request_context::RequestContext;
 use crate::inference::ollama::OllamaProvider;
 use crate::inference::provider::{
@@ -26,7 +29,7 @@ use crate::storage::conversation_store::ConversationStore;
 use crate::task_analyzer::{TaskAnalysis, TaskAnalyzer};
 
 use super::protocol::{
-    JSON_RPC_VERSION, JsonRpcRequest, JsonRpcResponse, METHOD_CHAT_CANCEL, METHOD_CHAT_SEND,
+    JsonRpcRequest, JsonRpcResponse, METHOD_CHAT_CANCEL, METHOD_CHAT_SEND,
     METHOD_CONVERSATION_CREATE, METHOD_CONVERSATION_DELETE, METHOD_CONVERSATION_GET,
     METHOD_CONVERSATION_LIST, METHOD_CONVERSATION_RENAME, METHOD_INITIALIZE, METHOD_SETTINGS_GET,
     METHOD_SETTINGS_UPDATE,
@@ -47,6 +50,8 @@ struct ServerState {
     store: Arc<Mutex<ConversationStore>>,
     tasks: Tasks,
     analysis_versions: Arc<Mutex<HashMap<String, u64>>>,
+    tools: Arc<ToolRegistry>,
+    agents: Arc<AgentRegistry>,
 }
 
 fn socket_path() -> Result<PathBuf, String> {
@@ -91,6 +96,8 @@ pub fn run(config: &AppConfig) -> Result<(), String> {
         .map_err(|e| format!("Socket permission error: {e}"))?;
 
     let provider = OllamaProvider::new(config.ollama_base_url.clone())?;
+    let tools = Arc::new(ToolRegistry::with_builtins()?);
+    let agents = Arc::new(AgentRegistry::with_builtins()?);
     let store = ConversationStore::open()?;
 
     let mut effective_config = config.clone();
@@ -105,6 +112,8 @@ pub fn run(config: &AppConfig) -> Result<(), String> {
         store: Arc::new(Mutex::new(store)),
         tasks: Arc::new(Mutex::new(HashMap::new())),
         analysis_versions: Arc::new(Mutex::new(HashMap::new())),
+        tools,
+        agents: Arc::clone(&agents),
     });
 
     println!("Local Assistant 2.0 IPC server");
@@ -112,6 +121,7 @@ pub fn run(config: &AppConfig) -> Result<(), String> {
     println!("Provider: ollama");
     println!("Model: {}", effective_config.model_name);
     println!("Context: {} tokens", effective_config.context_length_tokens);
+    println!("Registered agents: {}", agents.definitions().len());
     println!("Waiting for clients...");
 
     for incoming in listener.incoming() {
@@ -222,11 +232,15 @@ fn handle_request(
     let notification = request.is_notification();
     let request_context = RequestContext::for_client(identity, new_id("request"));
 
-    if request.jsonrpc != JSON_RPC_VERSION {
+    if let Some(reason) = request.validation_error() {
         if !notification {
             send_response(
                 writer,
-                &JsonRpcResponse::failure(id, -32600, "Invalid Request: jsonrpc must be 2.0"),
+                &JsonRpcResponse::failure(
+                    id,
+                    -32600,
+                    format!("Invalid Request: {reason}"),
+                ),
             )?;
         }
         return Ok(());
@@ -483,10 +497,16 @@ fn handle_request(
                 (Ok(conversation_id), Ok(text)) => {
                     let task_context = TaskContext::from_value(request.params.get("taskContext"))?;
 
+                    let tool_authorized = state
+                        .permissions
+                        .authorize(identity, Capability::AgentToolExecute)
+                        .allowed;
+
                     start_generation(
                         conversation_id.to_string(),
                         text.to_string(),
                         task_context,
+                        tool_authorized,
                         request_context.clone(),
                         state,
                         writer,
@@ -546,6 +566,7 @@ fn start_generation(
     conversation_id: String,
     user_text: String,
     task_context: Option<TaskContext>,
+    tool_authorized: bool,
     request_context: RequestContext,
     state: &Arc<ServerState>,
     writer: &Arc<Mutex<UnixStream>>,
@@ -614,6 +635,8 @@ fn start_generation(
         .insert(task_id.clone(), cancellation.clone());
 
     let provider = Arc::clone(&state.provider);
+    let tools = Arc::clone(&state.tools);
+    let agents = Arc::clone(&state.agents);
     let conversations = Arc::clone(&state.conversations);
     let store = Arc::clone(&state.store);
     let tasks = Arc::clone(&state.tasks);
@@ -641,6 +664,27 @@ fn start_generation(
 
     thread::spawn(move || {
         let analysis_model = model.clone();
+
+        let agent_context = if tool_authorized {
+            match agents.create_context("general", &request_context) {
+                Ok(context) => Some(context),
+                Err(error) => {
+                    eprintln!("[agent] Could not create agent context: {error}");
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        let messages = AgentOrchestrator::prepare_messages(
+            provider.as_ref(),
+            &model,
+            messages,
+            context_length_tokens,
+            agent_context,
+            tools.as_ref(),
+        );
 
         let request = GenerationRequest {
             model,

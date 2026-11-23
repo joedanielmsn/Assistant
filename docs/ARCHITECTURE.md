@@ -15,8 +15,9 @@ Responsibilities:
 - Conversation and message state.
 - Context assembly.
 - Inference coordination.
-- Agent and task orchestration.
-- Cancellation and worker supervision.
+- Agent registry and orchestration.
+- Tool registration, validation, and execution.
+- Cancellation and future worker supervision.
 - Persistence and memory services.
 - Permission and policy enforcement.
 
@@ -45,26 +46,28 @@ Initial Linux transport:
 - Unix-domain socket.
 - Socket location under `$XDG_RUNTIME_DIR/local-assistant/`.
 - Private runtime directory and socket permissions.
+- Linux peer-credential authentication.
 
 Protocol:
 - JSON-RPC 2.0.
 - Newline-delimited JSON frames.
+- Request validation and bounded frame handling.
 - Streaming notifications for generation events.
+- Request and task identifiers.
 
-Initial methods:
+Initial methods include:
 - `initialize`
 - `conversation.create`
-- `chat.send`
-- `chat.cancel`
+- Chat send and cancellation operations.
 
-Generation notifications:
+Generation notifications include:
 - `chat.delta`
 - `chat.completed`
 - `chat.cancelled`
 - `chat.failed`
 
-The protocol should evolve with explicit request validation, structured errors,
-request/task identifiers, and versioned capability negotiation.
+Further work includes protocol version negotiation, complete error handling,
+reconnection behaviour, and lifecycle hardening.
 
 Future Windows transport:
 - Replace the Linux socket transport with a Windows named-pipe provider.
@@ -83,13 +86,10 @@ Initial model:
 The internal architecture should not assume Ollama-specific message or
 generation behaviour outside its adapter.
 
-Potential future providers include llama.cpp and compatible local inference
-services.
-
 Streaming and cancellation are first-class requirements.
 
-The selected context default is 16K tokens, with a planned user-configurable
-range of 4K–16K.
+The selected context default is 16K tokens, with a configurable range
+of 4K–16K.
 
 ## 6. State and Storage Boundaries
 
@@ -98,7 +98,7 @@ Keep the following concepts separate:
 ### Conversation history
 - Messages and metadata for each conversation.
 - Conversation creation, selection, renaming, and deletion.
-- Persistent local storage.
+- Persistent local SQLite storage.
 
 ### User memory
 - Durable user-approved facts and preferences.
@@ -118,7 +118,41 @@ Keep the following concepts separate:
 These systems may share storage infrastructure, but must have distinct
 schemas, retention rules, and user controls.
 
-## 7. Screen Awareness Engine
+## 7. Agent and Tool Architecture
+
+The core owns a shared runtime tool registry and an agent registry.
+
+Current agent definitions:
+- General.
+- Research.
+- Coding.
+- System.
+
+The initial General Agent uses the inference planner to choose between
+responding directly and requesting an available tool.
+
+Tool execution:
+- Tools are registered with metadata and argument schemas.
+- Arguments are validated before handlers execute.
+- Tool execution requires the registered capability.
+- Results include structured status, output, errors, and duration.
+- Execution is logged.
+
+`AgentContext` is derived from a registered agent definition and the
+authenticated request context. It carries the agent identity, original
+principal, request ID, task ID, and the agent's registered capabilities.
+
+The agent cannot grant itself additional capabilities. Delegation must
+preserve the original principal and must not expand privileges.
+
+The initial General Agent and calculator path are working. The following
+remain planned:
+- Agent Coordinator and specialist delegation.
+- Delegated task lifecycle and result aggregation.
+- Complete central authorization for consequential tools.
+- Supervised, resource-bounded, isolated worker execution.
+
+## 8. Screen Awareness Engine
 
 Screen awareness is a core assistant-mode capability and should be enabled
 by default while Assistant Mode is active.
@@ -149,21 +183,6 @@ Privacy requirements:
 
 Keep platform capture providers replaceable for Windows.
 
-## 8. Agent and Worker Architecture
-
-The core supervises agent tasks and workers.
-
-Requirements:
-- Structured tool schemas.
-- Strict argument validation.
-- Explicit environment allowlists.
-- Resource bounds.
-- Cancellation and process-tree cleanup.
-- Permission checks before consequential actions.
-- Isolation where appropriate.
-
-Investigate systemd user services, Bubblewrap, and Landlock.
-
 ## 9. Adaptive Evolution
 
 Personality and skill adaptation must remain separate from core identity,
@@ -188,21 +207,27 @@ See `ADAPTIVE_EVOLUTION.md`.
 - Isolated worker execution where appropriate.
 - Encryption intentionally deferred; preserve future integration boundaries.
 
+The current permission broker and agent capability checks are foundational,
+not a substitute for complete authorization and isolation of future OS tools.
+
 ## 11. Current Implementation Boundary
 
-Implemented prototype:
+Implemented and verified:
 - Rust core and Ollama provider.
-- Unix socket IPC.
-- JSON-RPC request/notification flow.
-- Streaming generation.
-- Conversation creation and in-memory conversation state.
-- Initial Qt/QML client and C++ bridge.
+- Unix socket IPC with local peer authentication.
+- JSON-RPC request validation and bounded frames.
+- Streaming generation and task cancellation infrastructure.
+- Persistent SQLite conversations and task context.
+- Desktop conversation management and context settings.
+- Agent registry and shared runtime tool registry.
+- Strict tool argument validation and structured execution results.
+- General Agent context and capability enforcement.
+- Live calculator execution through the desktop-to-daemon path.
 
 Not yet implemented:
-- Persistent storage.
-- Full conversation navigation.
-- User memory.
-- Screen awareness.
-- Adaptive skill activation.
-- Worker isolation.
-- Windows transport and providers.
+- Agent Coordinator and specialist delegation.
+- Complete worker supervision and isolation.
+- Complete IPC reliability and reconnection hardening.
+- User memory and adaptive profile.
+- Screen Awareness Engine.
+- Windows transport and platform providers.

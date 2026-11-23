@@ -8,6 +8,7 @@ pub enum Capability {
     ConversationRead,
     ConversationWrite,
     ChatCancel,
+    AgentToolExecute,
 }
 
 impl Capability {
@@ -19,6 +20,7 @@ impl Capability {
             Self::ConversationRead => "conversation.read",
             Self::ConversationWrite => "conversation.write",
             Self::ChatCancel => "chat.cancel",
+            Self::AgentToolExecute => "agent.tool.execute",
         }
     }
 }

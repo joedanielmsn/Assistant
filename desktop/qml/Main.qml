@@ -289,11 +289,32 @@ ApplicationWindow {
                                 width: parent.width
                                 spacing: 6
 
-                                Label {
-                                    text: modelData.role === "user" ? "YOU" : "LOCAL ASSISTANT"
-                                    color: modelData.role === "user" ? accentColor : "#8ce0b5"
-                                    font.pixelSize: 10
-                                    font.bold: true
+                                RowLayout {
+                                    Layout.fillWidth: true
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: modelData.role === "user" ? "YOU" : "LOCAL ASSISTANT"
+                                        color: modelData.role === "user" ? accentColor : "#8ce0b5"
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                    }
+
+                                    ToolButton {
+                                        visible: modelData.role === "assistant" && modelData.content.length > 0
+                                        text: "Copy"
+                                        font.pixelSize: 11
+                                        implicitHeight: 28
+
+                                        onClicked: {
+                                            messageText.selectAll()
+                                            messageText.copy()
+                                            messageText.deselect()
+                                        }
+
+                                        ToolTip.visible: hovered
+                                        ToolTip.text: "Copy response"
+                                    }
                                 }
 
                                 Rectangle {
@@ -307,7 +328,7 @@ ApplicationWindow {
                                     color: modelData.role === "user" ? "#252d43" : panelColor
                                     border.color: borderColor
 
-                                    Text {
+                                    TextEdit {
                                         id: messageText
                                         anchors.fill: parent
                                         anchors.margins: 12
@@ -318,8 +339,12 @@ ApplicationWindow {
                                                 : "")
                                         color: textColor
                                         font.pixelSize: 14
-                                        wrapMode: Text.Wrap
-                                        textFormat: Text.PlainText
+                                        wrapMode: TextEdit.Wrap
+                                        textFormat: TextEdit.PlainText
+                                        readOnly: true
+                                        selectByMouse: true
+                                        selectByKeyboard: true
+                                        persistentSelection: true
                                     }
                                 }
                             }
