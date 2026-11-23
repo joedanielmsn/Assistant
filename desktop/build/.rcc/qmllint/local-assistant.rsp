@@ -1,0 +1,16 @@
+--bare
+-I
+/home/daniel/Project_Assistant/desktop/build
+-I
+/home/daniel/Project_Assistant/desktop/build/LocalAssistant
+-I
+/home/daniel/Project_Assistant/desktop/build
+-I
+/usr/lib/qt6/qml
+--resource
+/home/daniel/Project_Assistant/desktop/build/.qt/rcc/qmake_LocalAssistant.qrc
+--resource
+/home/daniel/Project_Assistant/desktop/build/.qt/rcc/local-assistant_raw_qml_0.qrc
+--resource
+/home/daniel/Project_Assistant/desktop/build/.qt/rcc/local-assistant_raw_qml_0_extra_qmldirs.qrc
+/home/daniel/Project_Assistant/desktop/qml/Main.qml

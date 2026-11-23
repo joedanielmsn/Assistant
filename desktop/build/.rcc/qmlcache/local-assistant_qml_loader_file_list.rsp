@@ -1,0 +1,7 @@
+--resource
+/home/daniel/Project_Assistant/desktop/build/.qt/rcc/qmake_LocalAssistant.qrc
+--resource
+/home/daniel/Project_Assistant/desktop/build/.qt/rcc/local-assistant_raw_qml_0.qrc
+--resource
+/home/daniel/Project_Assistant/desktop/build/.qt/rcc/local-assistant_raw_qml_0_extra_qmldirs.qrc
+/qt/qml/LocalAssistant/qml/Main.qml

@@ -1,0 +1,1 @@
+/home/daniel/Project_Assistant/desktop/build/local-assistant_autogen/include/../UVLADIE3JM/moc_assistant_backend.cpp.json

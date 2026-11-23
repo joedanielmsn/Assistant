@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/LocalAssistant">
+    <file alias="qmldir">/home/daniel/Project_Assistant/desktop/build/LocalAssistant/qmldir</file>
+  </qresource>
+</RCC>
+

@@ -1,0 +1,6 @@
+module LocalAssistant
+typeinfo local-assistant.qmltypes
+prefer :/qt/qml/LocalAssistant/
+Main 1.0 qml/Main.qml
+depends QtQuick
+
