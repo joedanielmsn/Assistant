@@ -1,44 +1,35 @@
 # Local Assistant 2.0
 
-A local-first assistant platform built around a trusted Rust core, supervised Python AI workers, and a Qt 6/QML desktop client.
+A local-first desktop assistant built around a Rust core, provider-neutral inference integration, a Qt 6/QML client, persistent conversations and a future governed agent/tool architecture.
 
-## First working prototype
+## Current local prototype (23 November 2026)
 
-The desktop chat UI connects to the per-user Rust core over its private Unix socket. The core derives the peer UID, authorizes `agent.chat` through its central permission broker, and supervises a short-lived Python worker for each request. The worker calls the local Ollama HTTP API and returns a text response.
+The CachyOS implementation has a working Qt desktop chat connected to the Rust `assistantd` core and local Ollama. Streaming chat works. The core owns conversation history and context assembly, with SQLite persistence for conversations, messages and context settings. The desktop supports listing, selecting, renaming and deleting conversations. A background task analyzer uses structured JSON generation to maintain a separate task context; the user has reported a successful live smoke test.
 
-The first agent is conversational only. It does not execute shell commands, modify files, browse the web, or invoke plugins. Model output is untrusted text, not permission to perform actions.
+Latest reported verification: 11 Rust unit tests pass; `cargo check` and `cargo build` complete without warnings.
 
-## Run on CachyOS
+This is an early working prototype, not a security-complete or production release. The central permission broker, fully integrated trusted peer identity, production worker supervision/sandboxing, governed tool execution, Screen Awareness Engine, Assistant Mode and Linux packaging remain outstanding. Do not infer that earlier disposable technical spikes are already integrated into this fresh implementation.
 
-Requirements: x86-64-v3-capable CachyOS/Linux, Rust toolchain, CMake, Ninja, Qt 6 Quick/QML/Quick Controls, Python 3, curl, and a running local Ollama server.
+## Architecture direction
 
-```bash
-./run.sh
-```
+- `core/assistantd/`: authoritative Rust core for configuration, conversation state, context assembly, inference coordination, persistence and orchestration.
+- `desktop/`: Qt 6 + QML desktop client communicating with the core over local IPC.
+- Ollama is the current first inference backend behind a provider abstraction. The internal interface remains provider-neutral; llama.cpp can be evaluated later, not as a prerequisite for the current working prototype.
+- The planned local client contract is QLocalSocket + JSON-RPC 2.0 over bounded NDJSON framing, with request IDs, streaming, cancellation and structured errors. Verify and complete this contract before treating it as accepted.
+- The planned security architecture includes trusted OS-derived identity, a central deny-by-default permission broker, audit events and supervised, sandboxed workers. These are not yet claimed as complete.
+- Screen awareness is a dedicated Assistant Mode capability, default-on while Assistant Mode is active, with visible status, pause/disable and exclusions.
 
-Useful commands: `./run.sh build`, `./run.sh status`, `./run.sh stop`, and `./run.sh clean`.
+## Model and context configuration
 
-Default model: `qwen3.5:2b-q4_K_M`. Override with `ASSISTANT_MODEL`. Default Ollama endpoint: `http://127.0.0.1:11434`; override with `OLLAMA_HOST`.
+Current selected model: `assistant-qwen:latest` (Qwen 3.5 2B Q4_K_M).
 
-The launcher does not take over Ollama service management. Start your existing Ollama server separately if it is not already running.
+Current context default: 16,384 tokens. Planned configurable range: 4,096–16,384 tokens in 1,024-token increments, persisted and resource-validated. Local tests reported successful 12K and 16K configurations with 100% GPU placement on an NVIDIA RTX 3050 4GB; this is not a full-context stress-test or production performance claim.
 
-## Architecture
+## Product sequence
 
-- `core/assistantd/`: Rust/Tokio authoritative core, local IPC and permission broker.
-- `workers/agent/`: Python conversational worker and Ollama adapter.
-- `desktop/`: Qt 6 + QML desktop client.
-- `run.sh`: one-command CachyOS development launcher.
-- `docs/first-working-prototype.md`: setup, scope and limitations.
-- `plan/` and `phase-0/`: authoritative architecture and engineering records.
+1. Complete the Linux desktop product on CachyOS.
+2. Rebuild platform-specific integration for Windows after Linux is complete.
+3. Deliver OS-appropriate Linux and Windows installers.
+4. Only then begin the separate AI-integrated CachyOS-derived product, initially using upstream repositories.
 
-The approved long-term inference direction remains a replaceable backend architecture with llama.cpp as the initial target. Ollama is used as a development adapter against the already-available local runtime.
-
-## Project constraints
-
-- Personal per-OS-user deployment first; shared multi-user server architecture remains a future profile.
-- Private-by-default data and explicit user/workspace authorization context.
-- All privileged operations pass through the central permission broker.
-- Models and workers are untrusted requesters, never authorities.
-- No telemetry, cloud inference or remote listener is enabled by this prototype.
-- The old `~/local-assistant` project is reference-only; this repository is a fresh implementation.
-- Licensing remains deferred until release planning.
+The desktop assistant remains independently installable. No telemetry or automatic diagnostic uploads. Encryption and final licensing decisions remain deferred to the planned release stage.
