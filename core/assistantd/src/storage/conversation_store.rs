@@ -92,6 +92,15 @@ impl ConversationStore {
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS conversation_task_context (
+                    conversation_id TEXT PRIMARY KEY,
+                    context_json TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    FOREIGN KEY(conversation_id)
+                        REFERENCES conversations(id)
+                        ON DELETE CASCADE
+                );
                 ",
             )
             .map_err(|e| format!("Could not initialize database schema: {e}"))?;
@@ -127,6 +136,67 @@ impl ConversationStore {
                 params![value.to_string()],
             )
             .map_err(|e| format!("Could not save context setting: {e}"))?;
+
+        Ok(())
+    }
+
+    pub fn load_task_context(
+        &self,
+        conversation_id: &str,
+    ) -> Result<Option<serde_json::Value>, String> {
+        let stored: Option<String> = self
+            .connection
+            .query_row(
+                "SELECT context_json FROM conversation_task_context
+                 WHERE conversation_id = ?1",
+                params![conversation_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|e| format!("Could not load task context: {e}"))?;
+
+        stored
+            .map(|value| {
+                serde_json::from_str(&value)
+                    .map_err(|e| format!("Stored task context is invalid: {e}"))
+            })
+            .transpose()
+    }
+
+    pub fn save_task_context(
+        &mut self,
+        conversation_id: &str,
+        context: &serde_json::Value,
+    ) -> Result<(), String> {
+        if !context.is_object() {
+            return Err("Task context must be a JSON object".to_string());
+        }
+
+        let serialized = serde_json::to_string(context)
+            .map_err(|e| format!("Could not serialize task context: {e}"))?;
+
+        self.connection
+            .execute(
+                "INSERT INTO conversation_task_context
+                    (conversation_id, context_json, updated_at)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT(conversation_id) DO UPDATE SET
+                    context_json = excluded.context_json,
+                    updated_at = excluded.updated_at",
+                params![conversation_id, serialized, current_timestamp()],
+            )
+            .map_err(|e| format!("Could not save task context: {e}"))?;
+
+        Ok(())
+    }
+
+    pub fn clear_task_context(&mut self, conversation_id: &str) -> Result<(), String> {
+        self.connection
+            .execute(
+                "DELETE FROM conversation_task_context WHERE conversation_id = ?1",
+                params![conversation_id],
+            )
+            .map_err(|e| format!("Could not clear task context: {e}"))?;
 
         Ok(())
     }
@@ -375,5 +445,74 @@ fn make_title(text: &str) -> String {
         "New conversation".to_string()
     } else {
         title
+    }
+}
+
+#[cfg(test)]
+mod task_context_tests {
+    use super::*;
+
+    fn test_store() -> ConversationStore {
+        let connection = Connection::open_in_memory().unwrap();
+
+        connection
+            .execute_batch(
+                "
+                PRAGMA foreign_keys = ON;
+
+                CREATE TABLE conversations (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL DEFAULT 'New conversation',
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+
+                CREATE TABLE conversation_task_context (
+                    conversation_id TEXT PRIMARY KEY,
+                    context_json TEXT NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    FOREIGN KEY(conversation_id)
+                        REFERENCES conversations(id)
+                        ON DELETE CASCADE
+                );
+                ",
+            )
+            .unwrap();
+
+        ConversationStore { connection }
+    }
+
+    #[test]
+    fn task_context_survives_storage_round_trip() {
+        let mut store = test_store();
+        store.create("conversation-a").unwrap();
+
+        let context = serde_json::json!({
+            "objective": "Build Local Assistant",
+            "constraints": ["Use Rust", "Keep inference local"],
+            "additionalContext": "Linux desktop implementation"
+        });
+
+        store.save_task_context("conversation-a", &context).unwrap();
+
+        let loaded = store.load_task_context("conversation-a").unwrap();
+
+        assert_eq!(loaded, Some(context));
+    }
+
+    #[test]
+    fn task_context_is_deleted_with_its_conversation() {
+        let mut store = test_store();
+        store.create("conversation-a").unwrap();
+
+        let context = serde_json::json!({
+            "objective": "Test conversation isolation"
+        });
+
+        store.save_task_context("conversation-a", &context).unwrap();
+
+        store.delete("conversation-a").unwrap();
+
+        assert_eq!(store.load_task_context("conversation-a").unwrap(), None);
     }
 }

@@ -13,12 +13,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use serde_json::{Value, json};
 
 use crate::config::AppConfig;
+use crate::context::{ContextManager, TaskContext};
+use crate::identity::ClientIdentity;
+use crate::permissions::PermissionBroker;
+use crate::request_context::RequestContext;
 use crate::inference::ollama::OllamaProvider;
 use crate::inference::provider::{
     CancellationToken, ChatMessage, GenerationEvent, GenerationRequest, InferenceProvider,
     MessageRole,
 };
 use crate::storage::conversation_store::ConversationStore;
+use crate::task_analyzer::{TaskAnalysis, TaskAnalyzer};
 
 use super::protocol::{
     JSON_RPC_VERSION, JsonRpcRequest, JsonRpcResponse, METHOD_CHAT_CANCEL, METHOD_CHAT_SEND,
@@ -35,11 +40,13 @@ type Conversations = Arc<Mutex<HashMap<String, Vec<ChatMessage>>>>;
 type Tasks = Arc<Mutex<HashMap<String, CancellationToken>>>;
 
 struct ServerState {
+    permissions: PermissionBroker,
     config: Arc<Mutex<AppConfig>>,
     provider: Arc<dyn InferenceProvider>,
     conversations: Conversations,
     store: Arc<Mutex<ConversationStore>>,
     tasks: Tasks,
+    analysis_versions: Arc<Mutex<HashMap<String, u64>>>,
 }
 
 fn socket_path() -> Result<PathBuf, String> {
@@ -91,11 +98,13 @@ pub fn run(config: &AppConfig) -> Result<(), String> {
     effective_config.validate()?;
 
     let state = Arc::new(ServerState {
+        permissions: PermissionBroker::for_desktop_user(unsafe { libc::geteuid() }),
         config: Arc::new(Mutex::new(effective_config.clone())),
         provider: Arc::new(provider),
         conversations: Arc::new(Mutex::new(HashMap::new())),
         store: Arc::new(Mutex::new(store)),
         tasks: Arc::new(Mutex::new(HashMap::new())),
+        analysis_versions: Arc::new(Mutex::new(HashMap::new())),
     });
 
     println!("Local Assistant 2.0 IPC server");
@@ -124,6 +133,17 @@ pub fn run(config: &AppConfig) -> Result<(), String> {
 }
 
 fn handle_client(stream: UnixStream, state: Arc<ServerState>) -> Result<(), String> {
+    let identity = ClientIdentity::from_stream(&stream)
+        .map_err(|error| format!("Could not authenticate IPC peer: {error}"))?;
+
+    identity
+        .verify_current_user()
+        .map_err(|error| format!("IPC peer rejected: {error}"))?;
+
+    println!(
+        "IPC client authenticated: pid={}, uid={}, gid={}",
+        identity.pid, identity.uid, identity.gid
+    );
     let reader_stream = stream.try_clone().map_err(|e| e.to_string())?;
     let mut reader = BufReader::new(reader_stream);
     let writer = Arc::new(Mutex::new(stream));
@@ -140,7 +160,7 @@ fn handle_client(stream: UnixStream, state: Arc<ServerState>) -> Result<(), Stri
             }
         };
 
-        handle_request(request, &state, &writer)?;
+        handle_request(request, &state, &writer, &identity)?;
     }
 
     Ok(())
@@ -196,15 +216,54 @@ fn handle_request(
     request: JsonRpcRequest,
     state: &Arc<ServerState>,
     writer: &Arc<Mutex<UnixStream>>,
+    identity: &ClientIdentity,
 ) -> Result<(), String> {
     let id = request.id.clone();
     let notification = request.is_notification();
+    let request_context = RequestContext::for_client(identity, new_id("request"));
 
     if request.jsonrpc != JSON_RPC_VERSION {
         if !notification {
             send_response(
                 writer,
                 &JsonRpcResponse::failure(id, -32600, "Invalid Request: jsonrpc must be 2.0"),
+            )?;
+        }
+        return Ok(());
+    }
+
+    let capability = match PermissionBroker::capability_for_method(&request.method) {
+        Some(capability) => capability,
+        None => {
+            if !notification {
+                send_response(
+                    writer,
+                    &JsonRpcResponse::failure(
+                        id,
+                        -32601,
+                        format!("Unknown or unauthorized method: {}", request.method),
+                    ),
+                )?;
+            }
+            return Ok(());
+        }
+    };
+
+    let decision = state.permissions.authorize(identity, capability);
+
+    if !decision.allowed {
+        if !notification {
+            send_response(
+                writer,
+                &JsonRpcResponse::failure(
+                    id,
+                    -32001,
+                    format!(
+                        "Permission denied for {}: {}",
+                        decision.capability,
+                        decision.reason
+                    ),
+                ),
             )?;
         }
         return Ok(());
@@ -221,6 +280,9 @@ fn handle_request(
                 "server": {
                     "name": "Local Assistant 2.0",
                     "version": env!("CARGO_PKG_VERSION")
+                },
+                "authenticatedClient": {
+                    "uid": identity.uid
                 },
                 "provider": state.provider.provider_name(),
                 "model": config.model_name,
@@ -288,7 +350,7 @@ fn handle_request(
                 .conversations
                 .lock()
                 .map_err(|_| "Conversation cache unavailable".to_string())?
-                .insert(conversation_id.clone(), vec![system_message()]);
+                .insert(conversation_id.clone(), Vec::new());
 
             Ok(json!({ "conversationId": conversation_id }))
         }
@@ -419,7 +481,16 @@ fn handle_request(
 
             match (conversation_id, text) {
                 (Ok(conversation_id), Ok(text)) => {
-                    start_generation(conversation_id.to_string(), text.to_string(), state, writer)
+                    let task_context = TaskContext::from_value(request.params.get("taskContext"))?;
+
+                    start_generation(
+                        conversation_id.to_string(),
+                        text.to_string(),
+                        task_context,
+                        request_context.clone(),
+                        state,
+                        writer,
+                    )
                 }
                 (Err(error), _) | (_, Err(error)) => Err(error),
             }
@@ -474,10 +545,12 @@ fn handle_request(
 fn start_generation(
     conversation_id: String,
     user_text: String,
+    task_context: Option<TaskContext>,
+    request_context: RequestContext,
     state: &Arc<ServerState>,
     writer: &Arc<Mutex<UnixStream>>,
 ) -> Result<Value, String> {
-    let history = {
+    let (history, task_context) = {
         let store = state
             .store
             .lock()
@@ -487,7 +560,17 @@ fn start_generation(
             .load(&conversation_id)?
             .ok_or_else(|| "Conversation not found".to_string())?;
 
-        let mut history = vec![system_message()];
+        // Explicitly supplied context replaces the saved context.
+        // Otherwise, reuse the context already associated with this conversation.
+        let effective_task_context = match task_context {
+            Some(context) => Some(context),
+            None => match store.load_task_context(&conversation_id)? {
+                Some(value) => TaskContext::from_value(Some(&value))?,
+                None => None,
+            },
+        };
+
+        let mut history = Vec::new();
 
         for message in stored_messages {
             let role = match message.role.as_str() {
@@ -502,10 +585,26 @@ fn start_generation(
             });
         }
 
-        history
+        (history, effective_task_context)
     };
 
     let task_id = new_id("task");
+    let request_context = request_context.with_task_id(task_id.clone());
+    request_context.log_event("generation_started", None);
+
+    // Each new generation invalidates background analysis from older turns
+    // in the same conversation.
+    let analysis_version = {
+        let mut versions = state
+            .analysis_versions
+            .lock()
+            .map_err(|_| "Task analysis registry unavailable".to_string())?;
+
+        let version = versions.entry(conversation_id.clone()).or_insert(0);
+        *version = version.saturating_add(1);
+        *version
+    };
+
     let cancellation = CancellationToken::new();
 
     state
@@ -518,6 +617,7 @@ fn start_generation(
     let conversations = Arc::clone(&state.conversations);
     let store = Arc::clone(&state.store);
     let tasks = Arc::clone(&state.tasks);
+    let analysis_versions = Arc::clone(&state.analysis_versions);
     let writer = Arc::clone(writer);
     let (model, context_length_tokens) = {
         let config = state
@@ -527,15 +627,20 @@ fn start_generation(
 
         (config.model_name.clone(), config.context_length_tokens)
     };
+
+    let messages = ContextManager::build_messages(
+        &history,
+        &user_text,
+        context_length_tokens,
+        task_context.as_ref(),
+    );
+
     let response_conversation_id = conversation_id.clone();
     let response_task_id = task_id.clone();
+    let response_request_id = request_context.request_id.clone();
 
     thread::spawn(move || {
-        let mut messages = history;
-        messages.push(ChatMessage {
-            role: MessageRole::User,
-            content: user_text.clone(),
-        });
+        let analysis_model = model.clone();
 
         let request = GenerationRequest {
             model,
@@ -551,123 +656,347 @@ fn start_generation(
             thread::spawn(move || worker_provider.generate(request, sender, worker_cancellation));
 
         let mut response_text = String::new();
-        let mut completed = false;
+        let mut completion_received = false;
+        let mut cancellation_received = false;
+        let mut failure_received: Option<String> = None;
         let mut terminal_event = false;
 
         for event in receiver {
-            let notification = match event {
+            match event {
                 GenerationEvent::TextDelta(delta) => {
+                    if terminal_event {
+                        continue;
+                    }
+
                     response_text.push_str(&delta);
-                    json!({
-                        "jsonrpc": JSON_RPC_VERSION,
+
+                    let notification = json!({
+                        "jsonrpc": "2.0",
                         "method": "chat.delta",
                         "params": {
                             "conversationId": conversation_id,
                             "taskId": task_id,
+                            "requestId": request_context.request_id.clone(),
                             "delta": delta
                         }
-                    })
+                    });
+
+                    let _ = send_json(&writer, &notification);
                 }
                 GenerationEvent::Completed => {
-                    completed = true;
-                    terminal_event = true;
-                    json!({
-                        "jsonrpc": JSON_RPC_VERSION,
-                        "method": "chat.completed",
-                        "params": {
-                            "conversationId": conversation_id,
-                            "taskId": task_id
-                        }
-                    })
+                    if !terminal_event {
+                        terminal_event = true;
+                        completion_received = true;
+                    }
                 }
                 GenerationEvent::Cancelled => {
-                    terminal_event = true;
-                    json!({
-                        "jsonrpc": JSON_RPC_VERSION,
-                        "method": "chat.cancelled",
-                        "params": {
-                            "conversationId": conversation_id,
-                            "taskId": task_id
-                        }
-                    })
+                    if !terminal_event {
+                        terminal_event = true;
+                        cancellation_received = true;
+                    }
                 }
                 GenerationEvent::Failed(error) => {
-                    terminal_event = true;
-                    json!({
-                        "jsonrpc": JSON_RPC_VERSION,
-                        "method": "chat.failed",
-                        "params": {
-                            "conversationId": conversation_id,
-                            "taskId": task_id,
-                            "error": error
-                        }
-                    })
+                    if !terminal_event {
+                        terminal_event = true;
+                        failure_received = Some(error);
+                    }
                 }
-            };
-
-            let _ = send_json(&writer, &notification);
+            }
         }
 
         let worker_result = worker.join();
 
-        if completed {
-            let saved = store
-                .lock()
-                .map_err(|_| "Database unavailable".to_string())
-                .and_then(|mut database| {
-                    database.append_exchange(&conversation_id, &user_text, &response_text)
-                });
-
-            match saved {
-                Ok(()) => {
-                    if let Ok(mut conversations) = conversations.lock() {
-                        if let Some(history) = conversations.get_mut(&conversation_id) {
-                            history.push(ChatMessage {
-                                role: MessageRole::User,
-                                content: user_text,
-                            });
-                            history.push(ChatMessage {
-                                role: MessageRole::Assistant,
-                                content: response_text,
-                            });
-                        }
-                    }
+        let terminal_notification = match worker_result {
+            Err(_) => {
+                request_context.log_event(
+                    "generation_failed",
+                    Some("Inference worker panicked"),
+                );
+                json!({
+                "jsonrpc": "2.0",
+                "method": "chat.failed",
+                "params": {
+                    "conversationId": conversation_id,
+                    "taskId": task_id,
+                    "requestId": request_context.request_id.clone(),
+                    "error": "Inference worker panicked"
                 }
-                Err(error) => {
-                    let _ = send_json(
-                        &writer,
-                        &json!({
-                            "jsonrpc": JSON_RPC_VERSION,
+            })
+            },
+
+            Ok(Err(error)) => {
+                request_context.log_event("generation_failed", Some(&error));
+                json!({
+                "jsonrpc": "2.0",
+                "method": "chat.failed",
+                "params": {
+                    "conversationId": conversation_id,
+                    "taskId": task_id,
+                    "requestId": request_context.request_id.clone(),
+                    "error": failure_received.unwrap_or(error)
+                }
+            })
+            },
+
+            Ok(Ok(())) if failure_received.is_some() => {
+                let error = failure_received.unwrap();
+                request_context.log_event("generation_failed", Some(&error));
+                json!({
+                "jsonrpc": "2.0",
+                "method": "chat.failed",
+                "params": {
+                    "conversationId": conversation_id,
+                    "taskId": task_id,
+                    "requestId": request_context.request_id.clone(),
+                    "error": error
+                }
+            })
+            },
+
+            Ok(Ok(())) if cancellation_received => {
+                request_context.log_event("generation_cancelled", None);
+                json!({
+                "jsonrpc": "2.0",
+                "method": "chat.cancelled",
+                "params": {
+                    "conversationId": conversation_id,
+                    "taskId": task_id,
+                    "requestId": request_context.request_id.clone()
+                }
+            })
+            },
+
+            Ok(Ok(())) if completion_received => {
+                let saved = store
+                    .lock()
+                    .map_err(|_| "Database unavailable".to_string())
+                    .and_then(|mut database| {
+                        database.append_exchange(&conversation_id, &user_text, &response_text)?;
+
+                        // Explicit context is committed only when its exchange
+                        // has also been saved successfully.
+                        if let Some(context) = task_context.as_ref() {
+                            let value = json!({
+                                "objective": context.objective,
+                                "constraints": context.constraints,
+                                "additionalContext": context.additional_context
+                            });
+
+                            if let Err(error) =
+                                database.save_task_context(&conversation_id, &value)
+                            {
+                                eprintln!(
+                                    "Conversation saved, but explicit task context could not be saved: {error}"
+                                );
+                            }
+                        }
+
+                        Ok(())
+                    });
+
+                match saved {
+                    Ok(()) => {
+                        request_context.log_event("generation_completed", None);
+
+                        if let Ok(mut conversations) = conversations.lock() {
+                            if let Some(history) = conversations.get_mut(&conversation_id) {
+                                history.push(ChatMessage {
+                                    role: MessageRole::User,
+                                    content: user_text.clone(),
+                                });
+                                history.push(ChatMessage {
+                                    role: MessageRole::Assistant,
+                                    content: response_text.clone(),
+                                });
+                            }
+                        }
+
+                        // Task analysis runs independently after the user's
+                        // response has been saved. Its failure never changes
+                        // the successful chat result.
+                        let analysis_provider = Arc::clone(&provider);
+                        let analysis_store = Arc::clone(&store);
+                        let analysis_versions = Arc::clone(&analysis_versions);
+                        let analysis_conversation_id = conversation_id.clone();
+                        let analysis_user_text = user_text.clone();
+                        let analysis_response_text = response_text.clone();
+                        let analysis_existing_context = task_context.clone();
+                        let analysis_model = analysis_model.clone();
+                        let analysis_request_context = request_context.clone();
+
+                        thread::spawn(move || {
+                            // Check whether this analysis is already obsolete.
+                            // Release the lock before performing model inference.
+                            let is_current = match analysis_versions.lock() {
+                                Ok(versions) => {
+                                    versions.get(&analysis_conversation_id).copied()
+                                        == Some(analysis_version)
+                                }
+                                Err(_) => {
+                                    analysis_request_context.log_event(
+                                        "task_analysis_registry_unavailable", None,
+                                    );
+                                    return;
+                                }
+                            };
+
+                            if !is_current {
+                                analysis_request_context.log_event(
+                                    "task_analysis_stale", None,
+                                );
+                                return;
+                            }
+
+                            analysis_request_context.log_event(
+                                "task_analysis_started", None,
+                            );
+
+                            let analysis = match TaskAnalyzer::analyze(
+                                analysis_provider.as_ref(),
+                                &analysis_model,
+                                analysis_existing_context.as_ref(),
+                                &analysis_user_text,
+                                &analysis_response_text,
+                            ) {
+                                Ok(result) => result,
+                                Err(error) => {
+                                    analysis_request_context.log_event(
+                                        "task_analysis_failed", Some(&error),
+                                    );
+                                    return;
+                                }
+                            };
+
+                            if matches!(analysis, TaskAnalysis::NoChange) {
+                                analysis_request_context.log_event(
+                                    "task_analysis_no_change", None,
+                                );
+                                return;
+                            }
+
+                            // Recheck after inference. Keep this lock through the
+                            // database write so a newer generation cannot start
+                            // between the version check and the context update.
+                            let versions = match analysis_versions.lock() {
+                                Ok(versions) => versions,
+                                Err(_) => {
+                                    analysis_request_context.log_event(
+                                        "task_analysis_registry_unavailable", None,
+                                    );
+                                    return;
+                                }
+                            };
+
+                            if versions.get(&analysis_conversation_id).copied()
+                                != Some(analysis_version)
+                            {
+                                analysis_request_context.log_event(
+                                    "task_analysis_stale", None,
+                                );
+                                return;
+                            }
+
+                            let mut database = match analysis_store.lock() {
+                                Ok(database) => database,
+                                Err(_) => {
+                                    analysis_request_context.log_event(
+                                        "task_context_database_unavailable", None,
+                                    );
+                                    return;
+                                }
+                            };
+
+                            match analysis {
+                                TaskAnalysis::NoChange => {}
+                                TaskAnalysis::Set(context) => {
+                                    let value = json!({
+                                        "objective": context.objective,
+                                        "constraints": context.constraints,
+                                        "additionalContext": context.additional_context
+                                    });
+
+                                    if let Err(error) = database.save_task_context(
+                                        &analysis_conversation_id,
+                                        &value,
+                                    ) {
+                                        analysis_request_context.log_event(
+                                            "task_context_save_failed", Some(&error),
+                                        );
+                                    } else {
+                                        analysis_request_context.log_event(
+                                            "task_context_updated", None,
+                                        );
+                                        analysis_request_context.log_event(
+                                            "task_analysis_completed", None,
+                                        );
+                                    }
+                                }
+                                TaskAnalysis::Clear => {
+                                    if let Err(error) =
+                                        database.clear_task_context(&analysis_conversation_id)
+                                    {
+                                        analysis_request_context.log_event(
+                                            "task_context_clear_failed", Some(&error),
+                                        );
+                                    } else {
+                                        analysis_request_context.log_event(
+                                            "task_context_cleared", None,
+                                        );
+                                        analysis_request_context.log_event(
+                                            "task_analysis_completed", None,
+                                        );
+                                    }
+                                }
+                            }
+                        });
+
+                        json!({
+                            "jsonrpc": "2.0",
+                            "method": "chat.completed",
+                            "params": {
+                                "conversationId": conversation_id,
+                                "taskId": task_id,
+                                "requestId": request_context.request_id.clone()
+                            }
+                        })
+                    }
+                    Err(error) => {
+                        request_context.log_event("generation_save_failed", Some(&error));
+                        json!({
+                            "jsonrpc": "2.0",
                             "method": "chat.failed",
                             "params": {
                                 "conversationId": conversation_id,
                                 "taskId": task_id,
-                                "error": format!("Response generated but could not be saved: {error}")
+                                "requestId": request_context.request_id.clone(),
+                                "error": format!(
+                                    "Response generated but could not be saved: {error}"
+                                )
                             }
-                        }),
-                    );
+                        })
+                    },
                 }
             }
-        } else if !terminal_event {
-            let message = match worker_result {
-                Ok(Err(error)) => error,
-                Err(_) => "Inference worker panicked".to_string(),
-                Ok(Ok(())) => "Generation ended without a completion event".to_string(),
-            };
 
-            let _ = send_json(
-                &writer,
-                &json!({
-                    "jsonrpc": JSON_RPC_VERSION,
+            Ok(Ok(())) => {
+                request_context.log_event(
+                    "generation_failed",
+                    Some("Generation ended without a completion event"),
+                );
+                json!({
+                    "jsonrpc": "2.0",
                     "method": "chat.failed",
                     "params": {
                         "conversationId": conversation_id,
                         "taskId": task_id,
-                        "error": message
+                        "requestId": request_context.request_id.clone(),
+                        "error": "Generation ended without a completion event"
                     }
-                }),
-            );
-        }
+                })
+            },
+        };
+
+        let _ = send_json(&writer, &terminal_notification);
 
         if let Ok(mut tasks) = tasks.lock() {
             tasks.remove(&task_id);
@@ -677,34 +1006,9 @@ fn start_generation(
     Ok(json!({
         "accepted": true,
         "conversationId": response_conversation_id,
-        "taskId": response_task_id
+        "taskId": response_task_id,
+        "requestId": response_request_id
     }))
-}
-
-fn system_message() -> ChatMessage {
-    ChatMessage {
-        role: MessageRole::System,
-        content: concat!(
-            "You are Local Assistant 2.0, a friendly, intelligent, ",
-            "and capable desktop AI assistant. ",
-            "Your personality is warm, calm, relaxed, and approachable. ",
-            "Sound natural and conversational, like a thoughtful person ",
-            "having a genuine everyday conversation. ",
-            "Do not sound robotic, overly formal, or excessively enthusiastic. ",
-            "Avoid forced excitement, exaggerated praise, and unnecessary ",
-            "compliments. ",
-            "Use emojis sparingly and only when they fit naturally. ",
-            "Be supportive without overdoing it. ",
-            "Give explanations with enough detail to be genuinely useful. ",
-            "Adapt response length to the user's request. ",
-            "Use conversation history to maintain context. ",
-            "Avoid unnecessary personal questions. ",
-            "Never pressure the user to continue chatting. ",
-            "Be honest about limitations and actual capabilities. ",
-            "Never claim planned features are already implemented."
-        )
-        .to_string(),
-    }
 }
 
 fn new_id(prefix: &str) -> String {

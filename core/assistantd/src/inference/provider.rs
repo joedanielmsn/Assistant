@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
@@ -55,6 +57,8 @@ impl CancellationToken {
 
 pub trait InferenceProvider: Send + Sync {
     fn provider_name(&self) -> &'static str;
+
+    fn generate_json(&self, request: GenerationRequest) -> Result<Value, String>;
 
     fn generate(
         &self,

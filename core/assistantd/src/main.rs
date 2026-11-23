@@ -1,8 +1,13 @@
 mod app;
 mod config;
+mod context;
 mod inference;
+mod identity;
+mod permissions;
+mod request_context;
 mod ipc;
 mod storage;
+mod task_analyzer;
 
 use app::Application;
 use config::AppConfig;

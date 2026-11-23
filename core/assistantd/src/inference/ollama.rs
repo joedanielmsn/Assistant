@@ -149,4 +149,54 @@ impl InferenceProvider for OllamaProvider {
 
         Ok(())
     }
+
+    fn generate_json(&self, request: GenerationRequest) -> Result<Value, String> {
+        let messages: Vec<Value> = request
+            .messages
+            .iter()
+            .map(|message| {
+                json!({
+                    "role": Self::role_name(&message.role),
+                    "content": message.content
+                })
+            })
+            .collect();
+
+        let payload = json!({
+            "model": request.model,
+            "messages": messages,
+            "stream": false,
+            "think": false,
+            "format": "json",
+            "options": {
+                "num_ctx": request.context_length_tokens,
+                "temperature": 0.1
+            }
+        });
+
+        let response = self
+            .client
+            .post(format!("{}/api/chat", self.base_url))
+            .json(&payload)
+            .send()
+            .and_then(|response| response.error_for_status())
+            .map_err(|error| format!("Ollama JSON request failed: {error}"))?;
+
+        let body: Value = response
+            .json()
+            .map_err(|error| format!("Invalid Ollama JSON response: {error}"))?;
+
+        if let Some(error) = body.get("error").and_then(Value::as_str) {
+            return Err(format!("Ollama error: {error}"));
+        }
+
+        let content = body
+            .get("message")
+            .and_then(|message| message.get("content"))
+            .and_then(Value::as_str)
+            .ok_or_else(|| "Ollama returned no JSON message content".to_string())?;
+
+        serde_json::from_str(content)
+            .map_err(|error| format!("Task analysis returned invalid JSON: {error}"))
+    }
 }
