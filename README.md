@@ -78,6 +78,7 @@ See `docs/PROJECT_PLAN.md` and `docs/ARCHITECTURE.md`.
 
 ## Planning Documents
 
+- `docs/DESKTOP_PRODUCT_AND_UI_PLAN.md` — agreed liquid-glass desktop direction, voice/screen overlay direction, tonight's completion sprint, and next feature-expansion sequence.
 - `docs/MASTER_PLAN.md` — long-term vision, architecture, product roadmap,
   and reuse-first development principles.
 - `docs/ACTION_PLAN.md` — implementation milestones, immediate work queue,
