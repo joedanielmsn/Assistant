@@ -19,6 +19,18 @@ ApplicationWindow {
     property color accentColor: "#8b9cff"
     property color textColor: "#edf0f7"
     property color mutedColor: "#9299aa"
+    property string selectedConversationId: ""
+    property string selectedConversationTitle: ""
+    property int draftContextLength: 16384
+
+    Connections {
+        target: assistant
+
+        function onContextLengthTokensChanged() {
+            if (settingsDialog.visible)
+                window.draftContextLength = assistant.contextLengthTokens
+        }
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -66,6 +78,15 @@ ApplicationWindow {
                         text: assistant.connected ? "● Connected" : "● Offline"
                         color: assistant.connected ? "#8ce0b5" : "#f09b9b"
                         font.pixelSize: 11
+                    }
+                }
+
+                Button {
+                    text: "Settings"
+                    enabled: assistant.connected
+                    onClicked: {
+                        window.draftContextLength = assistant.contextLengthTokens
+                        settingsDialog.open()
                     }
                 }
 
@@ -128,13 +149,95 @@ ApplicationWindow {
                         Layout.topMargin: 12
                     }
 
-                    Label {
-                        text: "Current chat"
-                        color: textColor
-                        font.pixelSize: 12
-                    }
+                    ListView {
+                        id: conversationList
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        spacing: 5
+                        model: assistant.conversations
 
-                    Item { Layout.fillHeight: true }
+                        delegate: Rectangle {
+                            width: conversationList.width
+                            height: 46
+                            radius: 7
+
+                            color: modelData.id === assistant.activeConversationId
+                                ? "#292f40" : "transparent"
+
+                            border.color: modelData.id === assistant.activeConversationId
+                                ? accentColor : "transparent"
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 4
+                                spacing: 2
+
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+
+                                    Label {
+                                        anchors.fill: parent
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: modelData.title
+                                        color: textColor
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: assistant.connected && !assistant.busy
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: assistant.selectConversation(modelData.id)
+                                    }
+                                }
+
+                                ToolButton {
+                                    text: "✎"
+                                    font.pixelSize: 13
+                                    implicitWidth: 27
+                                    implicitHeight: 30
+                                    enabled: assistant.connected && !assistant.busy
+                                    onClicked: {
+                                        window.selectedConversationId = modelData.id
+                                        window.selectedConversationTitle = modelData.title
+                                        renameField.text = modelData.title
+                                        renameDialog.open()
+                                    }
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: "Rename"
+                                }
+
+                                ToolButton {
+                                    text: "×"
+                                    font.pixelSize: 17
+                                    implicitWidth: 25
+                                    implicitHeight: 30
+                                    enabled: assistant.connected && !assistant.busy
+                                    onClicked: {
+                                        window.selectedConversationId = modelData.id
+                                        window.selectedConversationTitle = modelData.title
+                                        deleteDialog.open()
+                                    }
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: "Delete"
+                                }
+                            }
+                        }
+
+                        Label {
+                            anchors.centerIn: parent
+                            visible: conversationList.count === 0
+                            text: assistant.connected
+                                ? "No conversations yet"
+                                : "Waiting for assistant..."
+                            color: mutedColor
+                            font.pixelSize: 11
+                        }
+                    }
 
                     Label {
                         text: "MODEL"
@@ -320,4 +423,137 @@ ApplicationWindow {
             }
         }
     }
+
+
+    Dialog {
+        id: renameDialog
+        title: "Rename conversation"
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onAccepted: assistant.renameConversation(
+            window.selectedConversationId,
+            renameField.text
+        )
+
+        contentItem: ColumnLayout {
+            width: 340
+
+            Label {
+                text: "Enter a new name (up to 100 characters):"
+                color: window.textColor
+                wrapMode: Text.Wrap
+            }
+
+            TextField {
+                id: renameField
+                Layout.fillWidth: true
+                maximumLength: 100
+                selectByMouse: true
+                placeholderText: "Conversation name"
+                onAccepted: renameDialog.accept()
+            }
+        }
+    }
+
+    Dialog {
+        id: deleteDialog
+        title: "Delete conversation"
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Yes | Dialog.No
+
+        onAccepted: assistant.deleteConversation(
+            window.selectedConversationId
+        )
+
+        contentItem: Label {
+            width: 340
+            text: "Delete \"" + window.selectedConversationTitle +
+                  "\" and all its saved messages? This cannot be undone."
+            color: window.textColor
+            wrapMode: Text.Wrap
+        }
+    }
+
+
+    Dialog {
+        id: settingsDialog
+        title: "Settings"
+        modal: true
+        anchors.centerIn: parent
+        width: 420
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        onOpened: assistant.loadSettings()
+
+        onAccepted: assistant.setContextLengthTokens(
+            window.draftContextLength
+        )
+
+        contentItem: ColumnLayout {
+            spacing: 14
+
+            Label {
+                text: "Context length"
+                color: window.textColor
+                font.pixelSize: 15
+                font.bold: true
+            }
+
+            Label {
+                text: "Controls how much conversation context the model can use."
+                color: window.mutedColor
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+
+            Label {
+                text: Math.round(window.draftContextLength / 1024) + "K tokens"
+                color: window.accentColor
+                font.pixelSize: 22
+                font.bold: true
+            }
+
+            Slider {
+                Layout.fillWidth: true
+                from: 4096
+                to: 16384
+                stepSize: 1024
+                snapMode: Slider.SnapAlways
+                value: window.draftContextLength
+
+                onMoved: {
+                    window.draftContextLength =
+                        Math.round(value / 1024) * 1024
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Label {
+                    text: "4K"
+                    color: window.mutedColor
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Label {
+                    text: "16K"
+                    color: window.mutedColor
+                }
+            }
+
+            Label {
+                text: "Changes are saved when you press OK and affect the next response."
+                color: window.mutedColor
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+        }
+    }
+
+
 }

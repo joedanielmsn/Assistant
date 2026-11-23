@@ -4,9 +4,15 @@ use serde_json::Value;
 pub const JSON_RPC_VERSION: &str = "2.0";
 
 pub const METHOD_INITIALIZE: &str = "initialize";
+pub const METHOD_SETTINGS_GET: &str = "settings.get";
+pub const METHOD_SETTINGS_UPDATE: &str = "settings.update";
 pub const METHOD_CHAT_SEND: &str = "chat.send";
 pub const METHOD_CHAT_CANCEL: &str = "chat.cancel";
 pub const METHOD_CONVERSATION_CREATE: &str = "conversation.create";
+pub const METHOD_CONVERSATION_LIST: &str = "conversation.list";
+pub const METHOD_CONVERSATION_GET: &str = "conversation.get";
+pub const METHOD_CONVERSATION_RENAME: &str = "conversation.rename";
+pub const METHOD_CONVERSATION_DELETE: &str = "conversation.delete";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonRpcRequest {
@@ -58,11 +64,7 @@ impl JsonRpcResponse {
         }
     }
 
-    pub fn failure(
-        id: Option<Value>,
-        code: i64,
-        message: impl Into<String>,
-    ) -> Self {
+    pub fn failure(id: Option<Value>, code: i64, message: impl Into<String>) -> Self {
         Self {
             jsonrpc: JSON_RPC_VERSION.to_string(),
             result: None,

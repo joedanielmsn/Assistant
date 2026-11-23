@@ -2,6 +2,7 @@ mod app;
 mod config;
 mod inference;
 mod ipc;
+mod storage;
 
 use app::Application;
 use config::AppConfig;

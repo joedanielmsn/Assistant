@@ -5,11 +5,7 @@ use reqwest::blocking::Client;
 use serde_json::{Value, json};
 
 use super::provider::{
-    CancellationToken,
-    ChatMessage,
-    GenerationEvent,
-    GenerationRequest,
-    InferenceProvider,
+    CancellationToken, ChatMessage, GenerationEvent, GenerationRequest, InferenceProvider,
     MessageRole,
 };
 
@@ -38,10 +34,7 @@ impl OllamaProvider {
         }
     }
 
-    fn send_failure(
-        events: &Sender<GenerationEvent>,
-        message: String,
-    ) -> Result<(), String> {
+    fn send_failure(events: &Sender<GenerationEvent>, message: String) -> Result<(), String> {
         let _ = events.send(GenerationEvent::Failed(message.clone()));
         Err(message)
     }
@@ -88,10 +81,7 @@ impl InferenceProvider for OllamaProvider {
         {
             Ok(response) => response,
             Err(error) => {
-                return Self::send_failure(
-                    &events,
-                    format!("Ollama request failed: {error}"),
-                );
+                return Self::send_failure(&events, format!("Ollama request failed: {error}"));
             }
         };
 
@@ -128,10 +118,7 @@ impl InferenceProvider for OllamaProvider {
             };
 
             if let Some(error) = chunk.get("error").and_then(Value::as_str) {
-                return Self::send_failure(
-                    &events,
-                    format!("Ollama error: {error}"),
-                );
+                return Self::send_failure(&events, format!("Ollama error: {error}"));
             }
 
             if let Some(content) = chunk

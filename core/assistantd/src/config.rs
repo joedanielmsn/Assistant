@@ -18,9 +18,7 @@ impl Default for AppConfig {
 impl AppConfig {
     pub fn validate(&self) -> Result<(), String> {
         if !(4096..=16384).contains(&self.context_length_tokens) {
-            return Err(
-                "Context length must be between 4096 and 16384 tokens.".to_string()
-            );
+            return Err("Context length must be between 4096 and 16384 tokens.".to_string());
         }
 
         if self.ollama_base_url.trim().is_empty() {

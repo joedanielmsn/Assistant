@@ -1,6 +1,0 @@
-<RCC>
-  <qresource prefix="/">
-    <file alias="/qt/qml/LocalAssistant">/home/daniel/Project_Assistant/desktop/build/LocalAssistant</file>
-
-  </qresource>
-</RCC>

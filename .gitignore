@@ -26,3 +26,7 @@ node_modules/
 
 # Logs
 *.log
+
+# Generated build output
+desktop/build/
+build/
