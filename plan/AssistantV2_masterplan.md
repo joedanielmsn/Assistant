@@ -50,7 +50,7 @@ The initial development machine has an NVIDIA RTX 3050 with 4 GB VRAM and 16 GB 
 Design implications:
 - Keep model loading, context size, concurrency and screen processing resource-aware.
 - Provide CPU fallback where practical.
-- Context length is configurable from 4K to 16K tokens, with 8K as the provisional default.
+- Context length is configurable from 4K to 16K tokens, with 16K (16,384 tokens) selected as the current default after local RTX 3050 4GB testing. The UI must expose a persisted 4K–16K slider in 1K increments and validate resource use.
 - Validate selected models and context settings against available resources; never assume every selectable setting fits.
 
 ## 4. High-level architecture
@@ -145,7 +145,7 @@ Initial requirements:
 - Ordered user, assistant and tool messages.
 - Streaming assistant responses.
 - Correct handling of interrupted, cancelled and failed turns.
-- Context setting from 4K–16K, provisional default 8K.
+- Context setting from 4K–16K, current selected default 16K; persist the setting and validate resource use.
 - Context selection respecting user/workspace/task boundaries.
 - Basic memory only after reliable conversation persistence and retrieval.
 
