@@ -278,6 +278,19 @@ to a lightweight library.
 No candidate in this table is approved for integration solely by being
 listed here.
 
+## 5A. Open-Source Integration Catalog
+
+The living candidate register, evaluation checklist, and staged integration
+sequence are maintained in [docs/INTEGRATION_CATALOG.md](INTEGRATION_CATALOG.md).
+This catalog covers inference, agents, tools, code intelligence, memory,
+documents, OCR, voice, screen awareness, Linux desktop/OS integration,
+security, packaging, and development productivity.
+
+Catalog entries are research candidates, not automatic dependency approvals.
+Re-evaluate versions, maintenance, license (including model/grammar/voice
+assets), security, resource use, and platform fit when each milestone begins.
+Major dependency and architecture decisions still require user approval.
+
 ## 6. Tool and Agent Capability Roadmap
 
 ### Tool System
