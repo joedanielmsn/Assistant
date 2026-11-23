@@ -1,0 +1,28 @@
+# Rust
+/target/
+**/target/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Qt and desktop builds
+/build/
+/dist/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
