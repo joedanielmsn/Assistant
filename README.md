@@ -84,3 +84,4 @@ See `docs/PROJECT_PLAN.md` and `docs/ARCHITECTURE.md`.
   acceptance criteria, and approval gates.
 - `docs/PROJECT_PLAN.md` — product phases and development sequence.
 - `docs/DEVELOPMENT_STATUS.md` — current implementation status.
+- `docs/INTEGRATION_CATALOG.md` — researched open-source candidates across the assistant, desktop, AI, security, and eventual OS stack, with evaluation criteria and sequencing.
