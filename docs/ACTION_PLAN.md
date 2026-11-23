@@ -30,6 +30,35 @@ its adoption.
 - Keep the application buildable and runnable.
 - Update documentation and Git checkpoints after meaningful milestones.
 
+## Current priority override — 2026-11-23
+
+The earlier milestone sequence below is retained as historical planning
+context, but implementation has advanced beyond the original workspace
+milestone. Use the current development status and desktop sprint plan as the
+source of truth for immediate work:
+
+- [Desktop Product and UI Plan](DESKTOP_PRODUCT_AND_UI_PLAN.md): agreed
+  liquid-glass desktop direction, overlay design, tonight's completion
+  sprint, and next feature-expansion sequence.
+- [Development Status](DEVELOPMENT_STATUS.md): implemented foundations,
+  latest reported validation, and current limitations.
+
+**Immediate priority:** finish and polish the working Linux desktop
+application. Preserve chat, streaming, cancellation, conversations,
+workspace selection, settings, and tool activity. Do not delay this
+checkpoint for broad feature expansion or a frontend rewrite.
+
+**Architecture for this sprint:** retain the Rust core and Qt 6/QML desktop.
+The user is open to changing foundational technologies if a clear benefit
+justifies it, but no frontend migration is approved or planned for tonight.
+Major replacements still require a comparison and explicit approval.
+
+After the desktop checkpoint, resume Agent Coordinator expansion,
+delegation and supervision, approved tool adapters, memory, screen awareness,
+voice, Linux packaging, and later Windows work.
+
+---
+
 # Milestone 1 — Workspace-Aware Tool Execution
 
 Status: NEXT
