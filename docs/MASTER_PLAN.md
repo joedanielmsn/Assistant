@@ -238,7 +238,20 @@ Use replaceable providers for:
 
 ## 5. Reuse and Integration Strategy by Subsystem
 
-These are evaluation areas, not pre-approved dependencies.
+The following integration choices were explicitly approved on
+2026-11-23:
+
+- **ripgrep:** use the installed `rg` executable through a controlled
+  binary adapter for fast project search.
+- **MCP:** use an adapter into the native Tool Registry; MCP is an
+  interoperability layer, not the internal authority for permissions.
+- **Tree-sitter:** integrate structural parsing into the Coding Agent
+  after basic project search is operational.
+
+These approvals select integration approaches, not every implementation
+detail, crate, transport, grammar, or distribution choice.
+
+Other entries below remain evaluation areas, not pre-approved dependencies.
 
 | Subsystem | Existing solutions to evaluate |
 |---|---|
@@ -253,7 +266,10 @@ These are evaluation areas, not pre-approved dependencies.
 | Vector search | Qdrant and embedded alternatives |
 | Persistence | Existing SQLite ecosystem |
 | Document extraction | Mature format-specific libraries |
-| Search and indexing | Existing local indexing and search engines |
+| Project text search | ripgrep executable via controlled adapter (approved) |
+| Code structure | Tree-sitter parser adapter (approved) |
+| External tool interoperability | MCP adapter into native Tool Registry (approved) |
+| Knowledge indexing | SQLite FTS5 and other local indexing options |
 
 Evaluate the smallest solution that satisfies the actual requirement.
 A standalone server or large framework is not automatically preferable
@@ -268,8 +284,9 @@ listed here.
 
 - Request-aware execution context.
 - Workspace selection and propagation.
-- Project exploration and file search.
-- Code inspection.
+- Project exploration and file search through ripgrep.
+- Syntax-aware code inspection through Tree-sitter.
+- External tool interoperability through MCP adapters.
 - Safe file modification workflows.
 - External tool adapters.
 - Explicit permissions and resource limits.
@@ -386,7 +403,41 @@ Older x86-64-only and ARM64 systems are outside the initial baseline.
 Do not increase resource requirements without a concrete product benefit
 and user approval.
 
-## 11. Deferred Decisions
+## 11. Approved External Integration Decisions
+
+### ripgrep
+
+Use the installed `rg` executable through a controlled adapter.
+
+The adapter must:
+- Avoid shell invocation.
+- Restrict searches to authorized workspace roots.
+- Bound time, output, matches, and concurrency.
+- Return structured, normalized results.
+- Report clearly when ripgrep is unavailable.
+
+### Model Context Protocol
+
+MCP is an external interoperability layer connected through an adapter.
+
+The native Tool Registry remains authoritative for:
+- User and agent capabilities.
+- Request/workspace execution context.
+- Permission checks and approval.
+- Timeouts and output limits.
+- Execution logs and normalized results.
+
+An MCP server must not acquire permissions merely by advertising a tool.
+
+### Tree-sitter
+
+Use Tree-sitter for structural code parsing and navigation in the Coding
+Agent, after basic project search is operational.
+
+Parser and grammar selection, licensing, packaging, and supported language
+coverage must be evaluated before shipping.
+
+## 12. Deferred Decisions
 
 - Encryption: defer until late development or a later update.
 - Release licensing: decide during release planning.
