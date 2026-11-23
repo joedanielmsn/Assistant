@@ -275,7 +275,10 @@ ApplicationWindow {
                     ListView {
                         id: chatList
                         anchors.fill: parent
-                        anchors.margins: 24
+                        anchors.leftMargin: 24
+                        anchors.rightMargin: 24
+                        anchors.bottomMargin: 24
+                        anchors.topMargin: assistant.toolEvents.length > 0 ? 82 : 24
                         spacing: 18
                         clip: true
                         model: assistant.messages
@@ -355,6 +358,60 @@ ApplicationWindow {
                         })
                     }
 
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.topMargin: 12
+                        anchors.leftMargin: 24
+                        anchors.rightMargin: 24
+                        height: 58
+                        radius: 9
+                        color: "#202630"
+                        border.color: borderColor
+                        visible: assistant.toolEvents.length > 0
+                        z: 2
+
+                        Column {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            anchors.topMargin: 7
+                            anchors.bottomMargin: 6
+                            spacing: 3
+
+                            Label {
+                                text: "TOOL ACTIVITY"
+                                color: mutedColor
+                                font.pixelSize: 9
+                                font.bold: true
+                            }
+
+                            Label {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                color: textColor
+                                font.pixelSize: 11
+                                text: {
+                                    const event = assistant.toolEvents[assistant.toolEvents.length - 1]
+                                    if (!event)
+                                        return ""
+
+                                    let action = "Selected"
+                                    if (event.event === "tool.started")
+                                        action = "Running"
+                                    else if (event.event === "tool.completed")
+                                        action = "Completed"
+                                    else if (event.event === "tool.failed")
+                                        action = "Failed"
+
+                                    return action + ": " + event.tool +
+                                        "  ·  Step " + event.callIndex
+                                }
+                            }
+                        }
+                    }
+
                     Column {
                         anchors.centerIn: parent
                         spacing: 10
@@ -429,12 +486,22 @@ ApplicationWindow {
                             Button {
                                 Layout.preferredWidth: 92
                                 Layout.fillHeight: true
-                                text: assistant.busy ? "Working..." : "Send"
-                                enabled: assistant.connected && !assistant.busy
+                                visible: !assistant.busy
+                                text: "Send"
+                                enabled: assistant.connected
                                 onClicked: {
                                     assistant.sendMessage(messageInput.text)
                                     messageInput.clear()
                                 }
+                            }
+
+                            Button {
+                                Layout.preferredWidth: 92
+                                Layout.fillHeight: true
+                                visible: assistant.busy
+                                text: "Stop"
+                                enabled: assistant.connected
+                                onClicked: assistant.cancelGeneration()
                             }
                         }
 

@@ -68,13 +68,10 @@ impl PermissionBroker {
             "initialize" => Some(Capability::SystemInitialize),
             "settings.get" => Some(Capability::SettingsRead),
             "settings.update" => Some(Capability::SettingsWrite),
-            "conversation.list" | "conversation.get" => {
-                Some(Capability::ConversationRead)
+            "conversation.list" | "conversation.get" => Some(Capability::ConversationRead),
+            "conversation.create" | "conversation.rename" | "conversation.delete" | "chat.send" => {
+                Some(Capability::ConversationWrite)
             }
-            "conversation.create"
-            | "conversation.rename"
-            | "conversation.delete"
-            | "chat.send" => Some(Capability::ConversationWrite),
             "chat.cancel" => Some(Capability::ChatCancel),
             _ => None,
         }

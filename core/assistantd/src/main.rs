@@ -2,11 +2,11 @@ mod agent;
 mod app;
 mod config;
 mod context;
-mod inference;
 mod identity;
+mod inference;
+mod ipc;
 mod permissions;
 mod request_context;
-mod ipc;
 mod storage;
 mod task_analyzer;
 

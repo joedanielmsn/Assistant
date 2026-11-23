@@ -42,10 +42,7 @@ impl JsonRpcRequest {
 
         // Null is retained as the representation of omitted params
         // by the current deserialization structure.
-        if !self.params.is_null()
-            && !self.params.is_object()
-            && !self.params.is_array()
-        {
+        if !self.params.is_null() && !self.params.is_object() && !self.params.is_array() {
             return Some("params must be an object or array");
         }
 

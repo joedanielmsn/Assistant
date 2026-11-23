@@ -17,6 +17,7 @@ class AssistantBackend : public QObject
     Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
     Q_PROPERTY(QString status READ status NOTIFY statusChanged)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY messagesChanged)
+    Q_PROPERTY(QVariantList toolEvents READ toolEvents NOTIFY toolEventsChanged)
     Q_PROPERTY(QVariantList conversations READ conversations NOTIFY conversationsChanged)
     Q_PROPERTY(QString activeConversationId READ activeConversationId NOTIFY activeConversationChanged)
     Q_PROPERTY(int contextLengthTokens READ contextLengthTokens NOTIFY contextLengthTokensChanged)
@@ -29,6 +30,7 @@ public:
     bool busy() const;
     QString status() const;
     QVariantList messages() const;
+    QVariantList toolEvents() const;
     QVariantList conversations() const;
     QString activeConversationId() const;
     int contextLengthTokens() const;
@@ -37,6 +39,7 @@ public:
     Q_INVOKABLE void loadSettings();
     Q_INVOKABLE void setContextLengthTokens(int value);
     Q_INVOKABLE void sendMessage(const QString &text);
+    Q_INVOKABLE void cancelGeneration();
     Q_INVOKABLE void newConversation();
     Q_INVOKABLE void loadConversations();
     Q_INVOKABLE void selectConversation(const QString &conversationId);
@@ -48,6 +51,7 @@ signals:
     void busyChanged();
     void statusChanged();
     void messagesChanged();
+    void toolEventsChanged();
     void conversationsChanged();
     void activeConversationChanged();
     void contextLengthTokensChanged();
@@ -80,10 +84,12 @@ private:
     bool m_shuttingDown = false;
     QByteArray m_buffer;
     QVariantList m_messages;
+    QVariantList m_toolEvents;
     QVariantList m_conversations;
 
     QString m_status = "Disconnected";
     QString m_conversationId;
+    QString m_activeTaskId;
 
     bool m_connected = false;
     bool m_busy = false;

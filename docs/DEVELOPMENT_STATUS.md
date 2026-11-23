@@ -1,115 +1,103 @@
-# Development Status
+# Local Assistant 2.0 — Development Status
 
 Last updated: 2026-11-23
 
-## Current Milestone
+## Current milestone
 
-Persistent Linux desktop prototype with a working initial agent/tool execution
-path. Multi-agent coordination is the next architecture milestone.
+The Linux prototype has a working Rust daemon, Qt/QML desktop client,
+persistent conversations, local inference, and an initial agent/tool
+execution pipeline.
 
-## Completed and Verified
+The current focus is to turn the initial agent/tool foundation into a
+reusable, extensible system before expanding desktop features.
 
-### Project foundation
-- Independent project created at `~/Project_Assistant`.
-- Rust core crate and Qt desktop application.
-- Qt 6.12 development environment verified.
+## Implemented
 
-### Inference
-- Provider interface and Ollama integration.
-- Primary model: `assistant-qwen:latest` (Qwen 3.5 2B Q4_K_M).
-- 8K, 12K, and 16K context tests completed.
-- 16K selected as the default; configurable 4K–16K range.
-- Model placement reported as 100% GPU during testing.
+### Core and inference
 
-### Core, persistence, and IPC
-- Rust daemon with Unix-domain socket IPC.
+- Rust daemon and provider abstraction.
+- Ollama inference integration.
+- Selected model: `assistant-qwen:latest`.
+- 16K default context, configurable from 4K to 16K.
+- Context manager with mandatory-message protection and history budgeting.
+- Planner prompt budgeting.
+- SQLite conversation and task-context persistence.
+
+### IPC and desktop
+
 - JSON-RPC 2.0 over NDJSON.
-- Local client authentication using Linux peer credentials.
-- Request validation and bounded frame handling.
-- Request and task identifiers propagated through generation.
-- SQLite conversation and message persistence.
-- Conversation loading and history assembly.
-- Task context persistence and context assembly.
+- Linux Unix-domain socket transport.
+- Local peer-credential authentication.
 - Streaming generation notifications.
-- Core task cancellation infrastructure.
-- Background task analysis and generation lifecycle logging.
-- Permission broker and capability definitions.
+- Task cancellation infrastructure.
+- Qt 6/QML desktop and C++ IPC bridge.
+- Conversation management.
+- Tool activity events and cancellation controls.
 
-### Desktop
-- Qt 6/QML application and C++ local-socket bridge.
-- Conversation creation and independent conversation IDs.
-- Conversation list, selection, renaming, and deletion.
-- Settings interface with persisted context-length selection.
-- Chat message text selection and assistant-message copying.
-- Successful GUI-to-core chat and multi-conversation use.
+### Agents and tools
 
-### Agent and tool foundation
-- Runtime `ToolRegistry` with built-in calculator.
-- Tool metadata, registration, and discovery.
-- Recursive JSON argument-schema validation.
-- Required fields, types, nested objects, arrays, and boundary validation.
-- Tool capability checks and structured execution results.
-- Execution status, duration, and logging.
-- Agent definitions and runtime registry.
-- Built-in General, Research, Coding, and System agent definitions.
-- `AgentContext` inherits authenticated principal, request ID, task ID,
-  and registered agent capabilities.
-- General Agent is connected to the live generation path.
-- Agent capabilities are checked before planning and used for tool execution.
-- 34 focused agent tests passed.
-- Live desktop-to-daemon calculator execution succeeded.
+- Agent registry with General, Research, Coding, and System definitions.
+- Shared runtime tool registry.
+- Tool metadata and JSON argument schemas.
+- Strict recursive argument validation.
+- Capability checks before execution.
+- Structured tool results and execution logging.
+- Planner decisions between direct responses and tool execution.
+- Multi-step planning using previous tool results.
+- Duplicate tool-call protection.
+- Maximum of four tool calls per turn.
+- Bounded tool output passed back into planning.
+- Cancellation checks between planning and tool execution.
 
-## Current Limitations and Work in Progress
+### Built-in tools
 
-### Agent architecture
-- General Agent currently acts as the entry point.
-- Specialist definitions are registered but do not yet have independent
-  specialist execution workflows.
-- Agent Coordinator and delegation protocol are not implemented.
-- Result aggregation and delegated-task lifecycle are not implemented.
-- Tool permissions are capability-scoped, but consequential OS tools still
-  require the complete central authorization and isolation design.
+- Calculator.
+- `system_info`: read-only operating-system, architecture, hostname,
+  and memory information.
+- `workspace_list`: lists entries inside the configured workspace.
+- `workspace_read`: reads UTF-8 text files inside the configured workspace.
 
-### Core and desktop reliability
-- Full IPC hardening and reconnect/disconnect recovery remain.
-- A user-facing cancellation control remains to be added.
-- More integration testing is required for task lifecycle and failure cases.
-- Workspace-aware context integration remains incomplete.
+Workspace access currently uses `LOCAL_ASSISTANT_WORKSPACE`, captured when
+the daemon initializes its built-in tools.
 
-### Not yet implemented
-- Complete user memory and adaptive profile management.
-- Screen Awareness Engine.
-- Supervised and isolated worker execution.
-- Complete model manager.
-- Windows implementation and installer.
-- Linux release packaging and installer.
+Workspace access is read-only. Paths must be relative and remain inside
+the canonical workspace root. Symlinks are not followed during directory
+listing, sensitive paths are blocked, file reads are limited to 64 KiB,
+and directory listings are limited to 100 entries.
 
-## Immediate Next Steps
+## Current limitations
 
-1. Build the Agent Coordinator and delegation protocol.
-2. Preserve identity, task context, and capability boundaries across delegation.
-3. Add structured specialist results, aggregation, and failure handling.
-4. Integrate the complete permission-broker path before adding consequential tools.
-5. Continue desktop and IPC reliability work.
-6. Bring Assistant Mode and the Screen Awareness Engine into the desktop product
-   with visible state and user controls.
+- Workspace selection is environment-configured rather than selected
+  through the desktop and propagated with each request.
+- General, Research, Coding, and System definitions exist, but a complete
+  coordinator and specialist delegation lifecycle are not implemented.
+- Tool handlers are synchronous; cancellation cannot interrupt a handler
+  already executing.
+- The inference provider's JSON planning call is blocking.
+- Complete worker supervision, isolation, and resource limits remain future
+  work.
+- IPC reconnect and lifecycle recovery need further hardening.
+- User memory and adaptive profile are not implemented.
+- Screen Awareness Engine is not implemented.
+- Windows transport and platform providers are not implemented.
 
-## Current Development Environment
+## Current development environment
 
-- OS: CachyOS Linux.
-- Desktop: KDE Plasma on Wayland.
-- Rust and Cargo: 1.100.0.
-- Qt: 6.12.0.
-- CMake: 4.5.1.
-- Ninja: 1.13.2.
-- Initial inference backend: Ollama.
+- CachyOS / KDE Plasma.
+- Rust core.
+- Qt 6 desktop.
+- Ollama inference.
+- AMD CPU, 16 GB DDR5 RAM, NVIDIA RTX 3050 4 GB.
 - Primary model: `assistant-qwen:latest`.
-- Tested hardware: AMD CPU, 16 GB DDR5 RAM, NVIDIA RTX 3050 4 GB.
 
-## Git Checkpoint
+## Immediate next steps
 
-The persistent-core checkpoint is preserved on
-`checkpoint/linux-core-2026-11-23`.
-
-The agent/tool implementation is being developed separately on
-`feature/agent-tool-system`.
+1. Propagate workspace selection from the desktop through IPC and request
+   context into tool execution.
+2. Improve agent-specific routing and specialist workflows.
+3. Add useful coding-oriented project inspection tools.
+4. Add research capabilities behind explicit provider and permission
+   boundaries.
+5. Continue toward a coordinator and delegated-task lifecycle.
+6. Improve execution supervision, cancellation, and isolation.
+7. Continue integrating the growing tool system into the desktop.

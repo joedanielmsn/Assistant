@@ -2,12 +2,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::permissions::Capability;
 
-pub type ToolHandler =
-    Arc<dyn Fn(&Value) -> Result<Value, String> + Send + Sync>;
+pub type ToolHandler = Arc<dyn Fn(&Value) -> Result<Value, String> + Send + Sync>;
 
 pub struct ToolMetadata {
     pub name: String,
@@ -77,9 +76,7 @@ impl ToolRegistry {
         }
 
         if !name.chars().all(|character| {
-            character.is_ascii_alphanumeric()
-                || character == '_'
-                || character == '-'
+            character.is_ascii_alphanumeric() || character == '_' || character == '-'
         }) {
             return Err("Tool name contains unsupported characters".to_string());
         }
@@ -140,6 +137,8 @@ impl ToolRegistry {
             execute_calculator,
         )?;
 
+        crate::agent::system_tools::register(&mut registry)?;
+
         Ok(registry)
     }
 
@@ -176,15 +175,11 @@ impl ToolRegistry {
             return Err(format!("Permission denied for tool: {name}"));
         }
 
-        validate_arguments(
-            &tool.metadata.argument_schema,
-            arguments,
-        )?;
+        validate_arguments(&tool.metadata.argument_schema, arguments)?;
 
         eprintln!(
             "[tools] Executing {} v{}",
-            tool.metadata.name,
-            tool.metadata.version
+            tool.metadata.name, tool.metadata.version
         );
 
         let started = Instant::now();
@@ -193,9 +188,7 @@ impl ToolRegistry {
 
         let result = match handler_result {
             Ok(output) => {
-                eprintln!(
-                    "[tools] Execution successful: {name} ({duration_ms} ms)"
-                );
+                eprintln!("[tools] Execution successful: {name} ({duration_ms} ms)");
 
                 ToolExecutionResult {
                     tool_name: name.to_string(),
@@ -207,9 +200,7 @@ impl ToolRegistry {
                 }
             }
             Err(error) => {
-                eprintln!(
-                    "[tools] Execution failed: {name} ({duration_ms} ms): {error}"
-                );
+                eprintln!("[tools] Execution failed: {name} ({duration_ms} ms): {error}");
 
                 ToolExecutionResult {
                     tool_name: name.to_string(),
@@ -272,9 +263,9 @@ fn validate_schema_node(schema: &Value, location: &str) -> Result<(), String> {
                     .ok_or_else(|| format!("required at {location} must be an array"))?;
 
                 for field in required {
-                    let name = field.as_str().ok_or_else(|| {
-                        format!("Invalid required field in schema at {location}")
-                    })?;
+                    let name = field
+                        .as_str()
+                        .ok_or_else(|| format!("Invalid required field in schema at {location}"))?;
 
                     if !properties.contains_key(name) {
                         return Err(format!(
@@ -285,10 +276,7 @@ fn validate_schema_node(schema: &Value, location: &str) -> Result<(), String> {
             }
 
             for (name, property_schema) in properties {
-                validate_schema_node(
-                    property_schema,
-                    &format!("{location}.{name}"),
-                )?;
+                validate_schema_node(property_schema, &format!("{location}.{name}"))?;
             }
         }
         "array" => {
@@ -303,9 +291,7 @@ fn validate_schema_node(schema: &Value, location: &str) -> Result<(), String> {
             validate_integer_range(object, "minItems", "maxItems", location)?;
         }
         other => {
-            return Err(format!(
-                "Unsupported schema type '{other}' at {location}"
-            ));
+            return Err(format!("Unsupported schema type '{other}' at {location}"));
         }
     }
 
@@ -335,9 +321,7 @@ fn validate_numeric_keyword(
 ) -> Result<(), String> {
     if let Some(value) = object.get(keyword) {
         if value.as_f64().is_none() {
-            return Err(format!(
-                "{keyword} at {location} must be a number"
-            ));
+            return Err(format!("{keyword} at {location} must be a number"));
         }
     }
 
@@ -388,11 +372,7 @@ fn validate_arguments(schema: &Value, arguments: &Value) -> Result<(), String> {
     validate_value(schema, arguments, "arguments")
 }
 
-fn validate_value(
-    schema: &Value,
-    value: &Value,
-    location: &str,
-) -> Result<(), String> {
+fn validate_value(schema: &Value, value: &Value, location: &str) -> Result<(), String> {
     let schema_type = schema["type"]
         .as_str()
         .ok_or_else(|| format!("Invalid schema type at {location}"))?;
@@ -464,20 +444,14 @@ fn validate_value(
                     let name = field.as_str().unwrap();
 
                     if !object.contains_key(name) {
-                        return Err(format!(
-                            "Missing required argument: {location}.{name}"
-                        ));
+                        return Err(format!("Missing required argument: {location}.{name}"));
                     }
                 }
             }
 
             for (key, child_value) in object {
                 if let Some(child_schema) = properties.get(key) {
-                    validate_value(
-                        child_schema,
-                        child_value,
-                        &format!("{location}.{key}"),
-                    )?;
+                    validate_value(child_schema, child_value, &format!("{location}.{key}"))?;
                 } else if schema["additionalProperties"].as_bool() == Some(false) {
                     return Err(format!("Unexpected argument: {location}.{key}"));
                 }
@@ -501,11 +475,7 @@ fn validate_value(
             let item_schema = &schema["items"];
 
             for (index, item) in array.iter().enumerate() {
-                validate_value(
-                    item_schema,
-                    item,
-                    &format!("{location}[{index}]"),
-                )?;
+                validate_value(item_schema, item, &format!("{location}[{index}]"))?;
             }
         }
         "boolean" => {}
@@ -543,9 +513,7 @@ impl<'a> Parser<'a> {
     }
 
     fn skip_spaces(&mut self) {
-        while self.position < self.input.len()
-            && self.input[self.position].is_ascii_whitespace()
-        {
+        while self.position < self.input.len() && self.input[self.position].is_ascii_whitespace() {
             self.position += 1;
         }
     }
@@ -646,9 +614,7 @@ impl<'a> Parser<'a> {
         let start = self.position;
         let mut digits = 0;
 
-        while self.position < self.input.len()
-            && self.input[self.position].is_ascii_digit()
-        {
+        while self.position < self.input.len() && self.input[self.position].is_ascii_digit() {
             self.position += 1;
             digits += 1;
         }
@@ -656,9 +622,7 @@ impl<'a> Parser<'a> {
         if self.input.get(self.position) == Some(&b'.') {
             self.position += 1;
 
-            while self.position < self.input.len()
-                && self.input[self.position].is_ascii_digit()
-            {
+            while self.position < self.input.len() && self.input[self.position].is_ascii_digit() {
                 self.position += 1;
                 digits += 1;
             }
@@ -738,7 +702,6 @@ mod tests {
         assert!(calculate("2 ** 3").is_err());
     }
 }
-
 
 #[cfg(test)]
 mod schema_tests {
@@ -910,10 +873,7 @@ mod schema_tests {
             "required": ["required_value"]
         });
 
-        assert!(validate_arguments(
-            &schema,
-            &json!({"required_value": "hello"})
-        ).is_ok());
+        assert!(validate_arguments(&schema, &json!({"required_value": "hello"})).is_ok());
     }
 }
 
@@ -935,11 +895,13 @@ mod registry_tests {
     fn calculator_executes_with_permission() {
         let registry = ToolRegistry::with_builtins().unwrap();
 
-        let result = registry.execute(
-            "calculator",
-            &json!({"expression": "100 + 38"}),
-            &[Capability::AgentToolExecute],
-        ).unwrap();
+        let result = registry
+            .execute(
+                "calculator",
+                &json!({"expression": "100 + 38"}),
+                &[Capability::AgentToolExecute],
+            )
+            .unwrap();
 
         assert!(result.success);
         assert_eq!(result.tool_name, "calculator");
@@ -950,11 +912,7 @@ mod registry_tests {
     fn calculator_rejects_missing_permission() {
         let registry = ToolRegistry::with_builtins().unwrap();
 
-        let result = registry.execute(
-            "calculator",
-            &json!({"expression": "2 + 2"}),
-            &[],
-        );
+        let result = registry.execute("calculator", &json!({"expression": "2 + 2"}), &[]);
 
         assert!(result.is_err());
     }
@@ -963,11 +921,7 @@ mod registry_tests {
     fn calculator_rejects_missing_argument() {
         let registry = ToolRegistry::with_builtins().unwrap();
 
-        let result = registry.execute(
-            "calculator",
-            &json!({}),
-            &[Capability::AgentToolExecute],
-        );
+        let result = registry.execute("calculator", &json!({}), &[Capability::AgentToolExecute]);
 
         assert!(result.is_err());
     }
@@ -1005,11 +959,7 @@ mod registry_tests {
     fn unknown_tool_is_rejected() {
         let registry = ToolRegistry::with_builtins().unwrap();
 
-        let result = registry.execute(
-            "unknown_tool",
-            &json!({}),
-            &[Capability::AgentToolExecute],
-        );
+        let result = registry.execute("unknown_tool", &json!({}), &[Capability::AgentToolExecute]);
 
         assert!(result.is_err());
     }
@@ -1018,33 +968,42 @@ mod registry_tests {
     fn custom_tool_can_be_registered_and_executed() {
         let mut registry = ToolRegistry::new();
 
-        registry.register(
-            "example",
-            "Returns a simple example result.",
-            "1.0.0",
-            json!({
-                "type": "object",
-                "properties": {
-                    "message": {"type": "string"}
+        registry
+            .register(
+                "example",
+                "Returns a simple example result.",
+                "1.0.0",
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "message": {"type": "string"}
+                    },
+                    "required": ["message"],
+                    "additionalProperties": false
+                }),
+                Capability::AgentToolExecute,
+                |arguments| {
+                    Ok(json!({
+                        "received": arguments["message"]
+                    }))
                 },
-                "required": ["message"],
-                "additionalProperties": false
-            }),
-            Capability::AgentToolExecute,
-            |arguments| {
-                Ok(json!({
-                    "received": arguments["message"]
-                }))
-            },
-        ).unwrap();
+            )
+            .unwrap();
 
-        assert!(registry.definitions().iter().any(|tool| tool.name == "example"));
+        assert!(
+            registry
+                .definitions()
+                .iter()
+                .any(|tool| tool.name == "example")
+        );
 
-        let result = registry.execute(
-            "example",
-            &json!({"message": "hello"}),
-            &[Capability::AgentToolExecute],
-        ).unwrap();
+        let result = registry
+            .execute(
+                "example",
+                &json!({"message": "hello"}),
+                &[Capability::AgentToolExecute],
+            )
+            .unwrap();
 
         assert_eq!(result.output["received"], "hello");
     }
@@ -1053,34 +1012,28 @@ mod registry_tests {
     fn handler_failure_returns_structured_result() {
         let mut registry = ToolRegistry::new();
 
-        registry.register(
-            "failing_tool",
-            "A tool that deliberately returns an error for testing.",
-            "1.0.0",
-            json!({
-                "type": "object",
-                "properties": {},
-                "additionalProperties": false
-            }),
-            Capability::AgentToolExecute,
-            |_| Err("simulated handler failure".to_string()),
-        ).unwrap();
+        registry
+            .register(
+                "failing_tool",
+                "A tool that deliberately returns an error for testing.",
+                "1.0.0",
+                json!({
+                    "type": "object",
+                    "properties": {},
+                    "additionalProperties": false
+                }),
+                Capability::AgentToolExecute,
+                |_| Err("simulated handler failure".to_string()),
+            )
+            .unwrap();
 
-        let result = registry.execute(
-            "failing_tool",
-            &json!({}),
-            &[Capability::AgentToolExecute],
-        ).unwrap();
+        let result = registry
+            .execute("failing_tool", &json!({}), &[Capability::AgentToolExecute])
+            .unwrap();
 
         assert!(!result.success);
-        assert_eq!(
-            result.status,
-            super::ToolExecutionStatus::Failed
-        );
-        assert_eq!(
-            result.error.as_deref(),
-            Some("simulated handler failure")
-        );
+        assert_eq!(result.status, super::ToolExecutionStatus::Failed);
+        assert_eq!(result.error.as_deref(), Some("simulated handler failure"));
         assert!(result.output.is_null());
     }
 
@@ -1088,17 +1041,16 @@ mod registry_tests {
     fn successful_execution_records_duration_and_status() {
         let registry = ToolRegistry::with_builtins().unwrap();
 
-        let result = registry.execute(
-            "calculator",
-            &json!({"expression": "2 + 2"}),
-            &[Capability::AgentToolExecute],
-        ).unwrap();
+        let result = registry
+            .execute(
+                "calculator",
+                &json!({"expression": "2 + 2"}),
+                &[Capability::AgentToolExecute],
+            )
+            .unwrap();
 
         assert!(result.success);
-        assert_eq!(
-            result.status,
-            super::ToolExecutionStatus::Succeeded
-        );
+        assert_eq!(result.status, super::ToolExecutionStatus::Succeeded);
         assert_eq!(result.error, None);
         assert_eq!(result.output["result"], 4.0);
         // A duration of zero milliseconds is valid for a fast tool.
@@ -1117,14 +1069,16 @@ mod registry_tests {
             })
         };
 
-        registry.register(
-            "example",
-            "Example tool",
-            "1.0.0",
-            register(),
-            Capability::AgentToolExecute,
-            |_| Ok(json!({})),
-        ).unwrap();
+        registry
+            .register(
+                "example",
+                "Example tool",
+                "1.0.0",
+                register(),
+                Capability::AgentToolExecute,
+                |_| Ok(json!({})),
+            )
+            .unwrap();
 
         let result = registry.register(
             "example",

@@ -181,6 +181,11 @@ QVariantList AssistantBackend::messages() const
     return m_messages;
 }
 
+QVariantList AssistantBackend::toolEvents() const
+{
+    return m_toolEvents;
+}
+
 QVariantList AssistantBackend::conversations() const
 {
     return m_conversations;
@@ -498,8 +503,11 @@ void AssistantBackend::handleMessage(const QJsonObject &message)
 
         if (method == "chat.send") {
             if (!result.value("accepted").toBool()) {
+                m_activeTaskId.clear();
                 setBusy(false);
                 setStatus("Core did not accept the message");
+            } else {
+                m_activeTaskId = result.value("taskId").toString();
             }
             return;
         }
@@ -510,19 +518,50 @@ void AssistantBackend::handleMessage(const QJsonObject &message)
     const QString method = message.value("method").toString();
     const QJsonObject params = message.value("params").toObject();
 
-    if (method == "chat.delta") {
+    const QString notificationTaskId =
+        params.value("taskId").toString();
+
+    // The worker may publish an event before the chat.send response arrives.
+    // Adopt its task ID in that case, then reject notifications from other tasks.
+    if (!notificationTaskId.isEmpty()) {
+        if (m_activeTaskId.isEmpty())
+            m_activeTaskId = notificationTaskId;
+
+        if (notificationTaskId != m_activeTaskId)
+            return;
+    }
+
+    if (method == "tool.event") {
+        QVariantMap entry{
+            {"event", params.value("event").toString()},
+            {"tool", params.value("tool").toString()},
+            {"callIndex", params.value("callIndex").toInt()},
+            {"durationMs", params.value("durationMs").toVariant()}
+        };
+
+        m_toolEvents.append(entry);
+
+        // Keep the activity display bounded even if the event stream grows.
+        while (m_toolEvents.size() > 12)
+            m_toolEvents.removeFirst();
+
+        emit toolEventsChanged();
+    } else if (method == "chat.delta") {
         appendToLastAssistantMessage(
             params.value("delta").toString()
         );
     } else if (method == "chat.completed") {
+        m_activeTaskId.clear();
         setBusy(false);
         setStatus("Ready");
         loadConversations();
     } else if (method == "chat.failed") {
+        m_activeTaskId.clear();
         setBusy(false);
         setStatus("Generation failed: " +
             params.value("error").toString());
     } else if (method == "chat.cancelled") {
+        m_activeTaskId.clear();
         setBusy(false);
         setStatus("Generation cancelled");
     }
@@ -630,6 +669,10 @@ void AssistantBackend::sendMessage(const QString &text)
     addMessage("user", cleaned);
     addMessage("assistant", "");
 
+    m_activeTaskId.clear();
+    m_toolEvents.clear();
+    emit toolEventsChanged();
+
     QJsonObject params{
         {"conversationId", m_conversationId},
         {"text", cleaned}
@@ -639,6 +682,25 @@ void AssistantBackend::sendMessage(const QString &text)
 
     setBusy(true);
     setStatus("Generating...");
+}
+
+void AssistantBackend::cancelGeneration()
+{
+    if (!m_busy)
+        return;
+
+    if (m_activeTaskId.isEmpty()) {
+        setStatus("Waiting for the task identifier before cancelling...");
+        return;
+    }
+
+    sendRequest(
+        "chat.cancel",
+        QJsonObject{{"taskId", m_activeTaskId}},
+        m_nextRequestId++
+    );
+
+    setStatus("Cancellation requested...");
 }
 
 void AssistantBackend::newConversation()

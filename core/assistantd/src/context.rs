@@ -130,7 +130,7 @@ impl ContextManager {
         current_user_text: &str,
         context_length_tokens: usize,
         task_context: Option<&TaskContext>,
-    ) -> Vec<ChatMessage> {
+    ) -> Result<Vec<ChatMessage>, String> {
         let input_budget = context_length_tokens.saturating_mul(INPUT_BUDGET_PERCENT) / 100;
 
         let system = system_message();
@@ -144,9 +144,19 @@ impl ContextManager {
         };
 
         // System instructions and the current request are mandatory.
-        // Optional context and history must fit around them.
+        // Reject the request rather than silently exceeding the budget.
         used_tokens = used_tokens.saturating_add(estimate_message_tokens(&current_message));
 
+        if used_tokens > input_budget {
+            return Err(format!(
+                "The current request is too large for the configured context window. \
+                 Estimated mandatory input: {used_tokens} tokens. \
+                 The available input budget: {input_budget} tokens. \
+                 Shorten the request or increase the context length."
+            ));
+        }
+
+        // Optional task context is included only when it fits.
         if let Some(task_context) = task_context {
             let task_message = task_context.to_message();
             let task_tokens = estimate_message_tokens(&task_message);
@@ -157,8 +167,6 @@ impl ContextManager {
             }
         }
 
-        // If mandatory messages alone exceed the estimated budget, preserve
-        // them. Otherwise, optional context and history use only the remainder.
         let mut selected_history = Vec::new();
 
         // Walk backwards so the newest conversation messages receive
@@ -180,16 +188,78 @@ impl ContextManager {
         messages.extend(selected_history);
         messages.push(current_message);
 
-        messages
+        Ok(messages)
     }
 }
 
-fn estimate_message_tokens(message: &ChatMessage) -> usize {
-    let content_tokens = message
-        .content
-        .chars()
-        .count()
-        .div_ceil(CHARS_PER_ESTIMATED_TOKEN);
+pub(crate) fn input_budget_tokens(context_length_tokens: usize) -> usize {
+    context_length_tokens.saturating_mul(INPUT_BUDGET_PERCENT) / 100
+}
+
+/// Adds a message while keeping the request inside the shared input budget.
+/// The first system message and final current-user message are preserved.
+/// Oldest optional context is removed first when necessary.
+pub(crate) fn append_message_with_budget(
+    mut messages: Vec<ChatMessage>,
+    additional: ChatMessage,
+    context_length_tokens: usize,
+) -> Result<Vec<ChatMessage>, String> {
+    let Some(mut current_user_index) = messages
+        .iter()
+        .rposition(|message| matches!(message.role, MessageRole::User))
+    else {
+        return Err(
+            "Cannot append a tool result: the current user message is missing.".to_string(),
+        );
+    };
+
+    if messages.is_empty()
+        || !matches!(
+            messages.first().map(|message| &message.role),
+            Some(MessageRole::System)
+        )
+        || messages[current_user_index + 1..]
+            .iter()
+            .any(|message| !matches!(message.role, MessageRole::System))
+    {
+        return Err(
+            "Cannot append a tool result: expected a system message, a current user message, and only system tool results after it."
+                .to_string(),
+        );
+    }
+
+    let budget = input_budget_tokens(context_length_tokens);
+    let additional_tokens = estimate_message_tokens(&additional);
+
+    let mut used_tokens = messages.iter().fold(0usize, |total, message| {
+        total.saturating_add(estimate_message_tokens(message))
+    });
+
+    // Preserve the first system message, current user request, and all
+    // previously appended tool results. Evict older optional context first.
+    while used_tokens.saturating_add(additional_tokens) > budget && current_user_index > 1 {
+        let removed = messages.remove(1);
+        used_tokens = used_tokens.saturating_sub(estimate_message_tokens(&removed));
+        current_user_index -= 1;
+    }
+
+    if used_tokens.saturating_add(additional_tokens) > budget {
+        return Err(format!(
+            "The tool result cannot fit within the available input budget (estimated input: {} tokens; budget: {} tokens).",
+            used_tokens.saturating_add(additional_tokens),
+            budget
+        ));
+    }
+
+    messages.push(additional);
+    Ok(messages)
+}
+
+pub(crate) fn estimate_message_tokens(message: &ChatMessage) -> usize {
+    // UTF-8 byte length is deliberately used instead of character count:
+    // multibyte text should not be treated as if every character were ASCII.
+    // This is still a conservative heuristic, not the model's exact tokenizer.
+    let content_tokens = message.content.len().div_ceil(CHARS_PER_ESTIMATED_TOKEN);
 
     content_tokens.saturating_add(MESSAGE_OVERHEAD_TOKENS)
 }
@@ -245,7 +315,8 @@ mod tests {
             assistant_message("Earlier answer"),
         ];
 
-        let messages = ContextManager::build_messages(&history, "Current question", 16384, None);
+        let messages =
+            ContextManager::build_messages(&history, "Current question", 16384, None).unwrap();
 
         assert_eq!(messages.len(), 4);
         assert!(matches!(messages[0].role, MessageRole::System));
@@ -263,7 +334,8 @@ mod tests {
             assistant_message("Recent answer"),
         ];
 
-        let messages = ContextManager::build_messages(&history, "Current question", 4096, None);
+        let messages =
+            ContextManager::build_messages(&history, "Current question", 4096, None).unwrap();
 
         assert!(messages.len() < history.len() + 2);
         assert_eq!(messages.last().unwrap().content, "Current question");
@@ -292,7 +364,8 @@ mod tests {
             "Start with the login flow",
             16384,
             Some(&task_context),
-        );
+        )
+        .unwrap();
 
         assert_eq!(messages.len(), 3);
         assert!(matches!(messages[0].role, MessageRole::System));
@@ -318,7 +391,8 @@ mod tests {
             "Keep this current request",
             4096,
             Some(&task_context),
-        );
+        )
+        .unwrap();
 
         assert_eq!(messages.len(), 2);
         assert!(matches!(messages[0].role, MessageRole::System));
@@ -335,14 +409,117 @@ mod tests {
     }
 
     #[test]
-    fn always_preserves_current_user_message() {
+    fn preserves_current_user_message_when_it_fits() {
         let messages =
-            ContextManager::build_messages(&[], "Do not discard this request", 4096, None);
+            ContextManager::build_messages(&[], "Do not discard this request", 4096, None).unwrap();
 
         assert_eq!(messages.len(), 2);
         assert_eq!(
             messages.last().unwrap().content,
             "Do not discard this request"
         );
+    }
+
+    #[test]
+    fn rejects_current_request_when_mandatory_context_exceeds_budget() {
+        let oversized_request = "A very large request ".repeat(10_000);
+
+        let result = ContextManager::build_messages(&[], &oversized_request, 4096, None);
+
+        let error = result.unwrap_err();
+
+        assert!(error.contains("too large"));
+        assert!(error.contains("available input budget"));
+    }
+
+    #[test]
+    fn appended_message_evicts_oldest_optional_context_first() {
+        let system = ChatMessage {
+            role: MessageRole::System,
+            content: "system".to_string(),
+        };
+        let old = user_message(&"old ".repeat(10000));
+        let recent = assistant_message("recent context");
+        let current = user_message("current request");
+        let additional = ChatMessage {
+            role: MessageRole::System,
+            content: "tool result".to_string(),
+        };
+
+        let messages = vec![system, old, recent, current];
+
+        let result = append_message_with_budget(messages, additional, 4096).unwrap();
+
+        assert_eq!(result[0].content, "system");
+        assert!(
+            !result
+                .iter()
+                .any(|message| message.content.starts_with("old "))
+        );
+        assert!(
+            result
+                .iter()
+                .any(|message| message.content == "recent context")
+        );
+        assert_eq!(result.last().unwrap().content, "tool result");
+        assert!(
+            result
+                .iter()
+                .any(|message| message.content == "current request")
+        );
+    }
+
+    #[test]
+    fn appended_message_fails_when_mandatory_context_cannot_fit() {
+        let system = ChatMessage {
+            role: MessageRole::System,
+            content: "system".to_string(),
+        };
+        let current = user_message(&"current ".repeat(5000));
+        let additional = ChatMessage {
+            role: MessageRole::System,
+            content: "tool result".to_string(),
+        };
+
+        let result = append_message_with_budget(vec![system, current], additional, 4096);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn multiple_tool_results_can_be_appended_after_current_user_message() {
+        let system = ChatMessage {
+            role: MessageRole::System,
+            content: "system".to_string(),
+        };
+        let previous_context = assistant_message("previous context");
+        let current = user_message("current request");
+        let first_tool_result = ChatMessage {
+            role: MessageRole::System,
+            content: "first tool result".to_string(),
+        };
+        let second_tool_result = ChatMessage {
+            role: MessageRole::System,
+            content: "second tool result".to_string(),
+        };
+
+        let messages = vec![system, previous_context, current];
+
+        let messages = append_message_with_budget(messages, first_tool_result, 4096).unwrap();
+        let messages = append_message_with_budget(messages, second_tool_result, 4096).unwrap();
+
+        assert_eq!(messages[0].content, "system");
+        assert_eq!(messages[1].content, "previous context");
+        assert_eq!(messages[2].content, "current request");
+        assert_eq!(messages[3].content, "first tool result");
+        assert_eq!(messages[4].content, "second tool result");
+    }
+
+    #[test]
+    fn estimates_multibyte_text_using_utf8_bytes() {
+        let ascii = user_message(&"a".repeat(30));
+        let multibyte = user_message(&"界".repeat(30));
+
+        assert!(estimate_message_tokens(&multibyte) > estimate_message_tokens(&ascii));
     }
 }

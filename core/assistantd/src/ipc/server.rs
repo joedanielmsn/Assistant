@@ -18,13 +18,13 @@ use crate::agent::tools::ToolRegistry;
 use crate::config::AppConfig;
 use crate::context::{ContextManager, TaskContext};
 use crate::identity::ClientIdentity;
-use crate::permissions::{Capability, PermissionBroker};
-use crate::request_context::RequestContext;
 use crate::inference::ollama::OllamaProvider;
 use crate::inference::provider::{
     CancellationToken, ChatMessage, GenerationEvent, GenerationRequest, InferenceProvider,
     MessageRole,
 };
+use crate::permissions::{Capability, PermissionBroker};
+use crate::request_context::RequestContext;
 use crate::storage::conversation_store::ConversationStore;
 use crate::task_analyzer::{TaskAnalysis, TaskAnalyzer};
 
@@ -236,11 +236,7 @@ fn handle_request(
         if !notification {
             send_response(
                 writer,
-                &JsonRpcResponse::failure(
-                    id,
-                    -32600,
-                    format!("Invalid Request: {reason}"),
-                ),
+                &JsonRpcResponse::failure(id, -32600, format!("Invalid Request: {reason}")),
             )?;
         }
         return Ok(());
@@ -274,8 +270,7 @@ fn handle_request(
                     -32001,
                     format!(
                         "Permission denied for {}: {}",
-                        decision.capability,
-                        decision.reason
+                        decision.capability, decision.reason
                     ),
                 ),
             )?;
@@ -609,6 +604,24 @@ fn start_generation(
         (history, effective_task_context)
     };
 
+    // Read configuration and validate the mandatory context before creating
+    // task state or invalidating any previous task analysis.
+    let (model, context_length_tokens) = {
+        let config = state
+            .config
+            .lock()
+            .map_err(|_| "Configuration unavailable".to_string())?;
+
+        (config.model_name.clone(), config.context_length_tokens)
+    };
+
+    let messages = ContextManager::build_messages(
+        &history,
+        &user_text,
+        context_length_tokens,
+        task_context.as_ref(),
+    )?;
+
     let task_id = new_id("task");
     let request_context = request_context.with_task_id(task_id.clone());
     request_context.log_event("generation_started", None);
@@ -642,21 +655,6 @@ fn start_generation(
     let tasks = Arc::clone(&state.tasks);
     let analysis_versions = Arc::clone(&state.analysis_versions);
     let writer = Arc::clone(writer);
-    let (model, context_length_tokens) = {
-        let config = state
-            .config
-            .lock()
-            .map_err(|_| "Configuration unavailable".to_string())?;
-
-        (config.model_name.clone(), config.context_length_tokens)
-    };
-
-    let messages = ContextManager::build_messages(
-        &history,
-        &user_text,
-        context_length_tokens,
-        task_context.as_ref(),
-    );
 
     let response_conversation_id = conversation_id.clone();
     let response_task_id = task_id.clone();
@@ -677,6 +675,35 @@ fn start_generation(
             None
         };
 
+        let event_writer = Arc::clone(&writer);
+        let event_task_id = task_id.clone();
+        let event_conversation_id = conversation_id.clone();
+        let event_request_id = request_context.request_id.clone();
+
+        let publish_tool_event =
+            move |event: &str, tool: &str, call_index: usize, duration_ms: Option<u128>| {
+                let mut params = json!({
+                    "conversationId": event_conversation_id,
+                    "taskId": event_task_id,
+                    "requestId": event_request_id,
+                    "event": event,
+                    "tool": tool,
+                    "callIndex": call_index
+                });
+
+                if let Some(duration) = duration_ms {
+                    params["durationMs"] = json!(duration);
+                }
+
+                let notification = json!({
+                    "jsonrpc": "2.0",
+                    "method": "tool.event",
+                    "params": params
+                });
+
+                let _ = send_json(&event_writer, &notification);
+            };
+
         let messages = AgentOrchestrator::prepare_messages(
             provider.as_ref(),
             &model,
@@ -684,6 +711,8 @@ fn start_generation(
             context_length_tokens,
             agent_context,
             tools.as_ref(),
+            cancellation.clone(),
+            &publish_tool_event,
         );
 
         let request = GenerationRequest {
@@ -752,63 +781,60 @@ fn start_generation(
 
         let terminal_notification = match worker_result {
             Err(_) => {
-                request_context.log_event(
-                    "generation_failed",
-                    Some("Inference worker panicked"),
-                );
+                request_context.log_event("generation_failed", Some("Inference worker panicked"));
                 json!({
-                "jsonrpc": "2.0",
-                "method": "chat.failed",
-                "params": {
-                    "conversationId": conversation_id,
-                    "taskId": task_id,
-                    "requestId": request_context.request_id.clone(),
-                    "error": "Inference worker panicked"
-                }
-            })
-            },
+                    "jsonrpc": "2.0",
+                    "method": "chat.failed",
+                    "params": {
+                        "conversationId": conversation_id,
+                        "taskId": task_id,
+                        "requestId": request_context.request_id.clone(),
+                        "error": "Inference worker panicked"
+                    }
+                })
+            }
 
             Ok(Err(error)) => {
                 request_context.log_event("generation_failed", Some(&error));
                 json!({
-                "jsonrpc": "2.0",
-                "method": "chat.failed",
-                "params": {
-                    "conversationId": conversation_id,
-                    "taskId": task_id,
-                    "requestId": request_context.request_id.clone(),
-                    "error": failure_received.unwrap_or(error)
-                }
-            })
-            },
+                    "jsonrpc": "2.0",
+                    "method": "chat.failed",
+                    "params": {
+                        "conversationId": conversation_id,
+                        "taskId": task_id,
+                        "requestId": request_context.request_id.clone(),
+                        "error": failure_received.unwrap_or(error)
+                    }
+                })
+            }
 
             Ok(Ok(())) if failure_received.is_some() => {
                 let error = failure_received.unwrap();
                 request_context.log_event("generation_failed", Some(&error));
                 json!({
-                "jsonrpc": "2.0",
-                "method": "chat.failed",
-                "params": {
-                    "conversationId": conversation_id,
-                    "taskId": task_id,
-                    "requestId": request_context.request_id.clone(),
-                    "error": error
-                }
-            })
-            },
+                    "jsonrpc": "2.0",
+                    "method": "chat.failed",
+                    "params": {
+                        "conversationId": conversation_id,
+                        "taskId": task_id,
+                        "requestId": request_context.request_id.clone(),
+                        "error": error
+                    }
+                })
+            }
 
             Ok(Ok(())) if cancellation_received => {
                 request_context.log_event("generation_cancelled", None);
                 json!({
-                "jsonrpc": "2.0",
-                "method": "chat.cancelled",
-                "params": {
-                    "conversationId": conversation_id,
-                    "taskId": task_id,
-                    "requestId": request_context.request_id.clone()
-                }
-            })
-            },
+                    "jsonrpc": "2.0",
+                    "method": "chat.cancelled",
+                    "params": {
+                        "conversationId": conversation_id,
+                        "taskId": task_id,
+                        "requestId": request_context.request_id.clone()
+                    }
+                })
+            }
 
             Ok(Ok(())) if completion_received => {
                 let saved = store
@@ -877,23 +903,18 @@ fn start_generation(
                                         == Some(analysis_version)
                                 }
                                 Err(_) => {
-                                    analysis_request_context.log_event(
-                                        "task_analysis_registry_unavailable", None,
-                                    );
+                                    analysis_request_context
+                                        .log_event("task_analysis_registry_unavailable", None);
                                     return;
                                 }
                             };
 
                             if !is_current {
-                                analysis_request_context.log_event(
-                                    "task_analysis_stale", None,
-                                );
+                                analysis_request_context.log_event("task_analysis_stale", None);
                                 return;
                             }
 
-                            analysis_request_context.log_event(
-                                "task_analysis_started", None,
-                            );
+                            analysis_request_context.log_event("task_analysis_started", None);
 
                             let analysis = match TaskAnalyzer::analyze(
                                 analysis_provider.as_ref(),
@@ -904,17 +925,14 @@ fn start_generation(
                             ) {
                                 Ok(result) => result,
                                 Err(error) => {
-                                    analysis_request_context.log_event(
-                                        "task_analysis_failed", Some(&error),
-                                    );
+                                    analysis_request_context
+                                        .log_event("task_analysis_failed", Some(&error));
                                     return;
                                 }
                             };
 
                             if matches!(analysis, TaskAnalysis::NoChange) {
-                                analysis_request_context.log_event(
-                                    "task_analysis_no_change", None,
-                                );
+                                analysis_request_context.log_event("task_analysis_no_change", None);
                                 return;
                             }
 
@@ -924,9 +942,8 @@ fn start_generation(
                             let versions = match analysis_versions.lock() {
                                 Ok(versions) => versions,
                                 Err(_) => {
-                                    analysis_request_context.log_event(
-                                        "task_analysis_registry_unavailable", None,
-                                    );
+                                    analysis_request_context
+                                        .log_event("task_analysis_registry_unavailable", None);
                                     return;
                                 }
                             };
@@ -934,18 +951,15 @@ fn start_generation(
                             if versions.get(&analysis_conversation_id).copied()
                                 != Some(analysis_version)
                             {
-                                analysis_request_context.log_event(
-                                    "task_analysis_stale", None,
-                                );
+                                analysis_request_context.log_event("task_analysis_stale", None);
                                 return;
                             }
 
                             let mut database = match analysis_store.lock() {
                                 Ok(database) => database,
                                 Err(_) => {
-                                    analysis_request_context.log_event(
-                                        "task_context_database_unavailable", None,
-                                    );
+                                    analysis_request_context
+                                        .log_event("task_context_database_unavailable", None);
                                     return;
                                 }
                             };
@@ -959,36 +973,29 @@ fn start_generation(
                                         "additionalContext": context.additional_context
                                     });
 
-                                    if let Err(error) = database.save_task_context(
-                                        &analysis_conversation_id,
-                                        &value,
-                                    ) {
-                                        analysis_request_context.log_event(
-                                            "task_context_save_failed", Some(&error),
-                                        );
+                                    if let Err(error) = database
+                                        .save_task_context(&analysis_conversation_id, &value)
+                                    {
+                                        analysis_request_context
+                                            .log_event("task_context_save_failed", Some(&error));
                                     } else {
-                                        analysis_request_context.log_event(
-                                            "task_context_updated", None,
-                                        );
-                                        analysis_request_context.log_event(
-                                            "task_analysis_completed", None,
-                                        );
+                                        analysis_request_context
+                                            .log_event("task_context_updated", None);
+                                        analysis_request_context
+                                            .log_event("task_analysis_completed", None);
                                     }
                                 }
                                 TaskAnalysis::Clear => {
                                     if let Err(error) =
                                         database.clear_task_context(&analysis_conversation_id)
                                     {
-                                        analysis_request_context.log_event(
-                                            "task_context_clear_failed", Some(&error),
-                                        );
+                                        analysis_request_context
+                                            .log_event("task_context_clear_failed", Some(&error));
                                     } else {
-                                        analysis_request_context.log_event(
-                                            "task_context_cleared", None,
-                                        );
-                                        analysis_request_context.log_event(
-                                            "task_analysis_completed", None,
-                                        );
+                                        analysis_request_context
+                                            .log_event("task_context_cleared", None);
+                                        analysis_request_context
+                                            .log_event("task_analysis_completed", None);
                                     }
                                 }
                             }
@@ -1018,7 +1025,7 @@ fn start_generation(
                                 )
                             }
                         })
-                    },
+                    }
                 }
             }
 
@@ -1037,7 +1044,7 @@ fn start_generation(
                         "error": "Generation ended without a completion event"
                     }
                 })
-            },
+            }
         };
 
         let _ = send_json(&writer, &terminal_notification);

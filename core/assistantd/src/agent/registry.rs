@@ -24,26 +24,15 @@ impl AgentRegistry {
         Self::default()
     }
 
-    pub fn register(
-        &mut self,
-        definition: AgentDefinition,
-    ) -> Result<(), String> {
-        if definition.id.trim().is_empty()
-            || definition.id.len() > 64
-        {
-            return Err(
-                "Agent ID must contain 1–64 characters".to_string()
-            );
+    pub fn register(&mut self, definition: AgentDefinition) -> Result<(), String> {
+        if definition.id.trim().is_empty() || definition.id.len() > 64 {
+            return Err("Agent ID must contain 1–64 characters".to_string());
         }
 
         if !definition.id.chars().all(|character| {
-            character.is_ascii_alphanumeric()
-                || character == '_'
-                || character == '-'
+            character.is_ascii_alphanumeric() || character == '_' || character == '-'
         }) {
-            return Err(
-                "Agent ID contains unsupported characters".to_string()
-            );
+            return Err("Agent ID contains unsupported characters".to_string());
         }
 
         if definition.name.trim().is_empty() {
@@ -59,10 +48,7 @@ impl AgentRegistry {
         }
 
         if self.agents.contains_key(&definition.id) {
-            return Err(format!(
-                "Agent is already registered: {}",
-                definition.id
-            ));
+            return Err(format!("Agent is already registered: {}", definition.id));
         }
 
         self.agents.insert(definition.id.clone(), definition);
@@ -87,8 +73,7 @@ impl AgentRegistry {
     }
 
     pub fn definitions(&self) -> Vec<AgentDefinition> {
-        let mut definitions: Vec<AgentDefinition> =
-            self.agents.values().cloned().collect();
+        let mut definitions: Vec<AgentDefinition> = self.agents.values().cloned().collect();
 
         definitions.sort_by(|a, b| a.id.cmp(&b.id));
 
@@ -101,43 +86,35 @@ impl AgentRegistry {
         registry.register(AgentDefinition {
             id: "general".to_string(),
             name: "General Assistant".to_string(),
-            description: "Handles everyday questions and general assistance."
-                .to_string(),
+            description: "Handles everyday questions and general assistance.".to_string(),
             version: "1.0.0".to_string(),
-            capabilities: vec![
-                Capability::AgentToolExecute,
-            ],
+            capabilities: vec![Capability::AgentToolExecute],
         })?;
 
         registry.register(AgentDefinition {
             id: "research".to_string(),
             name: "Research Agent".to_string(),
-            description: "Handles research, information gathering, and analysis."
-                .to_string(),
+            description: "Handles research, information gathering, and analysis.".to_string(),
             version: "1.0.0".to_string(),
-            capabilities: vec![
-                Capability::AgentToolExecute,
-            ],
+            capabilities: vec![Capability::AgentToolExecute],
         })?;
 
         registry.register(AgentDefinition {
             id: "coding".to_string(),
             name: "Coding Agent".to_string(),
-            description: "Helps with programming, debugging, and code analysis."
-                .to_string(),
+            description: "Helps with programming, debugging, and code analysis.".to_string(),
             version: "1.0.0".to_string(),
-            capabilities: vec![
-                Capability::AgentToolExecute,
-            ],
+            capabilities: vec![Capability::AgentToolExecute],
         })?;
 
         registry.register(AgentDefinition {
             id: "system".to_string(),
             name: "System Assistant".to_string(),
-            description: "Provides assistance with operating system tasks."
-                .to_string(),
+            description:
+                "Provides assistance with operating system tasks and read-only system diagnostics."
+                    .to_string(),
             version: "1.0.0".to_string(),
-            capabilities: vec![],
+            capabilities: vec![Capability::AgentToolExecute],
         })?;
 
         Ok(registry)
@@ -165,10 +142,7 @@ mod tests {
 
         registry.register(definition("test")).unwrap();
 
-        assert_eq!(
-            registry.get("test").unwrap().name,
-            "Test Agent"
-        );
+        assert_eq!(registry.get("test").unwrap().name, "Test Agent");
     }
 
     #[test]
@@ -219,7 +193,11 @@ mod tests {
         assert!(registry.get("system").is_some());
 
         assert!(
-            registry.get("system").unwrap().capabilities.is_empty()
+            registry
+                .get("system")
+                .unwrap()
+                .capabilities
+                .contains(&Capability::AgentToolExecute)
         );
     }
 }

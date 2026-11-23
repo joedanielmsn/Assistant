@@ -14,10 +14,7 @@ pub struct AgentContext {
 }
 
 impl AgentContext {
-    pub(crate) fn from_definition(
-        definition: &AgentDefinition,
-        request: &RequestContext,
-    ) -> Self {
+    pub(crate) fn from_definition(definition: &AgentDefinition, request: &RequestContext) -> Self {
         Self {
             agent_id: definition.id.clone(),
             principal: request.principal.clone(),
@@ -67,8 +64,7 @@ mod tests {
             gid: 1000,
         };
 
-        RequestContext::for_client(&identity, "request-123".to_string())
-            .with_task_id("task-456")
+        RequestContext::for_client(&identity, "request-123".to_string()).with_task_id("task-456")
     }
 
     #[test]
@@ -76,8 +72,7 @@ mod tests {
         let registry = AgentRegistry::with_builtins().unwrap();
         let definition = registry.get("general").unwrap();
 
-        let context =
-            AgentContext::from_definition(definition, &request_context());
+        let context = AgentContext::from_definition(definition, &request_context());
 
         assert_eq!(context.agent_id(), "general");
         assert_eq!(context.task_id(), Some("task-456"));
@@ -89,8 +84,7 @@ mod tests {
         let registry = AgentRegistry::with_builtins().unwrap();
         let definition = registry.get("general").unwrap();
 
-        let context =
-            AgentContext::from_definition(definition, &request_context());
+        let context = AgentContext::from_definition(definition, &request_context());
 
         assert_eq!(context.principal().pid, 123);
         assert_eq!(context.principal().uid, 1000);
@@ -101,18 +95,14 @@ mod tests {
     fn receives_only_registered_agent_capabilities() {
         let registry = AgentRegistry::with_builtins().unwrap();
 
-        let general = AgentContext::from_definition(
-            registry.get("general").unwrap(),
-            &request_context(),
-        );
+        let general =
+            AgentContext::from_definition(registry.get("general").unwrap(), &request_context());
 
-        let system = AgentContext::from_definition(
-            registry.get("system").unwrap(),
-            &request_context(),
-        );
+        let system =
+            AgentContext::from_definition(registry.get("system").unwrap(), &request_context());
 
         assert!(general.has_capability(Capability::AgentToolExecute));
-        assert!(!system.has_capability(Capability::AgentToolExecute));
+        assert!(system.has_capability(Capability::AgentToolExecute));
     }
 
     #[test]
@@ -124,13 +114,9 @@ mod tests {
             gid: 1000,
         };
 
-        let request =
-            RequestContext::for_client(&identity, "request-789".to_string());
+        let request = RequestContext::for_client(&identity, "request-789".to_string());
 
-        let context = AgentContext::from_definition(
-            registry.get("system").unwrap(),
-            &request,
-        );
+        let context = AgentContext::from_definition(registry.get("system").unwrap(), &request);
 
         assert_eq!(context.task_id(), None);
         assert_eq!(context.request_id(), "request-789");
