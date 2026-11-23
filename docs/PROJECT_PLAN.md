@@ -262,3 +262,27 @@ run reliably.
   product.
 - Broad test, formatting, and Clippy campaigns: expand during stabilization,
   not at the expense of reaching a working product prototype.
+
+## 7. Reuse-First Development and Decision Approval
+
+Local Assistant 2.0 is developed by a solo developer. We should not
+reimplement mature infrastructure when an established open-source
+component can provide the capability without compromising product
+experience, privacy, performance, security, or maintainability.
+
+For each major subsystem:
+
+1. Research existing open-source applications and libraries.
+2. Compare maintenance, license, platform support, resource usage, and
+   integration complexity.
+3. Prefer a small adapter behind our own replaceable interface.
+4. Build custom functionality only when existing solutions do not fit.
+
+Major framework, dependency, licensing, architecture, cloud-processing,
+hardware-baseline, and product-direction choices require explicit user
+approval after presenting alternatives and a recommendation.
+
+Routine implementation choices within approved architecture do not need
+repeated confirmation.
+
+See `docs/MASTER_PLAN.md` and `docs/ACTION_PLAN.md`.

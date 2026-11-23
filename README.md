@@ -75,3 +75,12 @@ is a client of the core.
    both desktop products are complete.
 
 See `docs/PROJECT_PLAN.md` and `docs/ARCHITECTURE.md`.
+
+## Planning Documents
+
+- `docs/MASTER_PLAN.md` — long-term vision, architecture, product roadmap,
+  and reuse-first development principles.
+- `docs/ACTION_PLAN.md` — implementation milestones, immediate work queue,
+  acceptance criteria, and approval gates.
+- `docs/PROJECT_PLAN.md` — product phases and development sequence.
+- `docs/DEVELOPMENT_STATUS.md` — current implementation status.
