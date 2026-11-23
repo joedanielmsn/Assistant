@@ -6,6 +6,19 @@ This document describes the practical implementation sequence. The Master
 Plan defines the long-term product direction; this document determines
 what to implement next.
 
+## Open-Source Integration Research
+
+A living technology inventory and evaluation checklist is maintained in
+[docs/INTEGRATION_CATALOG.md](INTEGRATION_CATALOG.md). Consult it before
+starting a new subsystem and update it when new useful projects are found,
+evaluated, adopted, rejected, or superseded.
+
+The catalog is deliberately broad: inference, agent orchestration, tool
+protocols, coding intelligence, memory/search, document extraction, OCR,
+voice, screen awareness, Linux desktop services, security, packaging, OS
+infrastructure, and developer tooling. Listing a candidate does not approve
+its adoption.
+
 ## Development Rules
 
 - Reuse mature open-source components when they meet our requirements.
