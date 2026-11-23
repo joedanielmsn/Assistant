@@ -1,6 +1,6 @@
 # Local Assistant 2.0 — Implementation Roadmap
 
-**Status:** Active; revised sequence approved 23 November 2026  
+**Status:** Active; implementation progress recorded 23 November 2026  
 **Governing documents:** AssistantV2_masterplan.md · ARCHITECTURE_DECISIONS.md
 
 This roadmap prioritizes the first working model-backed assistant, then a finished Linux and Windows desktop product. The future CachyOS OS product is not a dependency of the desktop application.
@@ -17,6 +17,33 @@ This roadmap prioritizes the first working model-backed assistant, then a finish
 8. Defer encryption, licensing decisions and broad stabilization.
 9. Use essential smoke checks, focused tests, CI and a fake-Ollama test; do not let exhaustive testing block the first working system.
 10. Start AI-integrated CachyOS work only after both desktop applications are complete.
+
+## Implementation progress — 23 November 2026
+
+The local CachyOS implementation has reached a working desktop-chat prototype. This is implementation evidence from the user's local build and test output, not a claim that the full security or production acceptance criteria have passed.
+
+Confirmed locally:
+- Rust `assistantd` builds successfully; `cargo check` and `cargo build` complete without warnings in the latest reported run.
+- Eleven Rust unit tests pass.
+- Rust inference abstraction with Ollama backend; streaming generation and a JSON-generation path used by background task analysis.
+- Qt 6/QML desktop client communicates with the core; chat streaming works.
+- SQLite-backed persistent conversations, message history and context-length setting.
+- Desktop conversation list supports selecting, renaming and deleting conversations.
+- Context assembly includes recent history and a separate validated task context.
+- Background task analyzer can identify, update, retain or clear task context; a live smoke test was reported successful.
+- Default model is `assistant-qwen:latest` (Qwen 3.5 2B Q4_K_M); selected default context is 16,384 tokens, with a planned 4K–16K slider in 1K increments. User reports 12K and 16K configurations run with 100% GPU placement on the RTX 3050 4GB.
+
+Not yet demonstrated or not yet implemented:
+- Trusted OS peer identity and enrolled-client trust integrated with every request.
+- Central deny-by-default permission broker and audit path.
+- Full versioned JSON-RPC 2.0 contract, bounded framing and reconnect-safe request lifecycle.
+- Race-safe task-context updates and strict aggregate context budgeting.
+- Typed tool registry and broker-authorized tool execution.
+- Worker supervisor, Bubblewrap/Landlock enforcement and resource-bounded worker lifecycle.
+- Screen Awareness Engine and Assistant Mode.
+- Settings/model manager completion, adaptive profile, long-term memory controls and Linux packaging.
+
+Do not treat installed system packages, earlier disposable technical spikes, or architecture documentation as proof that the corresponding production integration exists in this fresh local implementation. The previous rushed build remains reference-only.
 
 ## Phase 0 — Plan and workspace reset
 
@@ -37,6 +64,8 @@ Exit criteria:
 - Documentation-only changes do not silently restructure source code.
 
 ## Phase 1 — First working model-backed core
+
+**Status:** Working prototype achieved; protocol/security acceptance remains open.
 
 **Goal:** Make the new Rust core send a user message to a local model and return a response through the desktop-facing contract.
 
@@ -64,6 +93,8 @@ Exit criteria:
 
 ## Phase 2 — Conversation ownership and dependable agent loop
 
+**Status:** Conversation persistence and initial task-context analysis implemented; tool/agent lifecycle remains open.
+
 **Goal:** Turn the first model call into a coherent conversational agent.
 
 Deliverables:
@@ -85,6 +116,8 @@ Exit criteria:
 - Tool proposals cannot bypass validation or permission checks.
 
 ## Phase 3 — Core reliability and OS boundaries
+
+**Status:** Not yet integrated in the current local build; mandatory before model-controlled consequential operations or untrusted workers.
 
 **Goal:** Establish reliable local operation before expanding tools.
 
@@ -108,6 +141,8 @@ Exit criteria:
 - Essential CI catches basic integration regressions.
 
 ## Phase 4 — Linux desktop application and Screen Awareness Engine
+
+**Status:** Basic Qt desktop chat and conversation management work; Screen Awareness Engine, Assistant Mode and packaging remain open.
 
 **Goal:** Build the Linux desktop experience around the working core.
 
@@ -244,4 +279,4 @@ Exit criteria:
 
 ## Immediate next action
 
-Proceed with Phase 1: build the smallest end-to-end Rust-core-to-Ollama path with streaming and cancellation. Preserve the rushed implementation as reference, but do not let archival/restructuring work block the first working model.
+Continue from the working local prototype rather than restarting it. First inspect and correct the conversation/task-context reliability issues: enforce one aggregate context budget, prevent stale background task analysis from overwriting newer state, and ensure auxiliary task-context persistence errors cannot turn an already-saved successful exchange into a failed chat result. Then align the core IPC and identity path with the approved protocol and trust model, add the central deny-by-default permission broker, and only then introduce broker-authorized tools and supervised workers. Keep screen awareness as a major Linux desktop milestone. Do not start Windows or CachyOS OS-product work yet.
