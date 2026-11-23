@@ -285,4 +285,6 @@ approval after presenting alternatives and a recommendation.
 Routine implementation choices within approved architecture do not need
 repeated confirmation.
 
-See `docs/MASTER_PLAN.md` and `docs/ACTION_PLAN.md`.
+See `docs/MASTER_PLAN.md` and `docs/ACTION_PLAN.md`. The living open-source
+technology inventory and evaluation checklist is in
+`docs/INTEGRATION_CATALOG.md`.
